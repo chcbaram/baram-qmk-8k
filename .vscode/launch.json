@@ -1,0 +1,41 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "cwd": "${workspaceRoot}",
+      "executable": "./build/baram-qmk-8k.elf",
+      "name": "Debug with OpenOCD",
+      "request": "launch",
+      "type": "cortex-debug",
+      "servertype": "openocd",
+      "windows": {
+        "serverpath": "${env:OPENOCD_DIR}\\bin\\openocd.exe",
+        "searchDir": [
+          "${env:OPENOCD_DIR}\\share\\openocd\\scripts"
+        ],
+      },
+      "configFiles": [
+        "interface/stlink.cfg",
+        "target/stm32u5x.cfg"
+      ],     
+      "runToEntryPoint": "main",
+      "showDevDebugOutput": "none"
+    },
+    {
+      "cwd": "${workspaceRoot}",
+      "executable": "./build/baram-qmk-8k.elf",
+      "name": "Debug with STLINK",
+      "request": "launch",
+      "type": "cortex-debug",
+      "showDevDebugOutput": "none",      
+      "servertype": "stlink",
+      "osx": {
+        "serverpath": "/Applications/STMicroelectronics/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.macos64_2.0.400.202209281104/tools/bin/ST-LINK_gdbserver"
+      },
+      "runToEntryPoint": "main",  
+    },    
+  ]
+}
