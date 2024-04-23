@@ -54,10 +54,16 @@
 #define _USE_HW_SPI
 #define      HW_SPI_MAX_CH          1
 
+#define _USE_HW_EEPROM
+#define      HW_EEPROM_MAX_PAGES    32
+#define      HW_EEPROM_MODE         0
+
+
 
 //-- CLI
 //
 #define _USE_CLI_HW_BUTTON          1
 #define _USE_CLI_HW_KEYSCAN         1
+#define _USE_CLI_HW_EEPROM          1
 
 #endif

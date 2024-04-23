@@ -32,6 +32,9 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/logging/*.c
   ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
   ${QMK_ROOT_PATH}/quantum/send_string/*.c
+  ${QMK_ROOT_PATH}/quantum/process_keycode/process_key_override.c
+
+  
 
   # ${QMK_KEYBOARD_PATH}/*.c
 )
@@ -51,6 +54,7 @@ set (QMK_INC_DIR
   ${QMK_ROOT_PATH}/quantum/keymap_extras
   ${QMK_ROOT_PATH}/quantum/sequencer
   ${QMK_ROOT_PATH}/quantum/send_string
+  ${QMK_ROOT_PATH}/quantum/process_keycode
 
   ${QMK_KEYBOARD_PATH}
 )
@@ -59,6 +63,7 @@ set (QMK_INC_DIR
 add_compile_definitions(VIA_ENABLE)
 add_compile_definitions(RAW_ENABLE)
 add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
+add_compile_definitions(KEY_OVERRIDE_ENABLE)
 
 
 add_compile_definitions(QMK_KEYBOARD_H="quantum.h")

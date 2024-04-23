@@ -33,6 +33,8 @@ file(GLOB SRC_FILES CONFIGURE_DEPENDS
   src/bsp/device/*.c
 
   src/lib/ST/STM32_USB_Device_Library/Core/Src/*.c
+  src/lib/ST/EEPROM_Emul/Core/*.c
+  src/lib/ST/EEPROM_Emul/Porting/STM32U5/*.c  
 )
 
 # 하위폴더에 있는 파일까지 포함한다.
@@ -84,12 +86,15 @@ target_include_directories(${EXECUTABLE} PRIVATE
   src/hw/driver/usb/usb_cdc
   src/hw/driver/usb/usb_hid
   src/hw/driver/usb/usb_cmp
+  src/hw/driver/eeprom
 
   src/lib/ST/CMSIS/Include
   src/lib/ST/CMSIS/Device/ST/STM32U5xx/Include
   src/lib/ST/STM32U5xx_HAL_Driver/Inc
   src/lib/ST/STM32_USB_Device_Library/Core/Inc
 
+  src/lib/ST/EEPROM_Emul/Core
+  src/lib/ST/EEPROM_Emul/Porting/STM32U5
 
   ${QMK_INC_DIR}
 )
@@ -97,6 +102,7 @@ target_include_directories(${EXECUTABLE} PRIVATE
 target_compile_definitions(${EXECUTABLE} PRIVATE
   -DSTM32U5A5xx 
   -DUSE_HAL_DRIVER  
+  -DFLASH_LINES_128B
   )
 
 target_compile_options(${EXECUTABLE} PRIVATE

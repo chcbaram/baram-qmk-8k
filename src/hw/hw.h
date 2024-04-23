@@ -18,6 +18,7 @@ extern "C" {
 #include "button.h"
 #include "keys.h"
 #include "spi.h"
+#include "eeprom.h"
 
 
 bool hwInit(void);

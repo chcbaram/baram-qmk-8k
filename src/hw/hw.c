@@ -35,6 +35,7 @@ bool hwInit(void)
   logPrintf("\n");
 
 
+  eepromInit();
   spiInit();
   buttonInit();
   cdcInit();
