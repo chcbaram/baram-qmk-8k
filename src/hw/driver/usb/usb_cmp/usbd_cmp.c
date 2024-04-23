@@ -879,11 +879,11 @@ static void  USBD_CMPSIT_HIDKeyboardDesc(USBD_HandleTypeDef *pdev, uint32_t pCon
 
   /* Append Endpoint descriptor to Configuration descriptor */
   __USBD_CMPSIT_SET_EP(pdev->tclasslist[pdev->classId].Eps[1].add, USBD_EP_TYPE_INTR, HID_VIA_EP_SIZE, \
-                       HID_HS_BINTERVAL, HID_FS_BINTERVAL);
+                       4, HID_FS_BINTERVAL);
 
   /* Append Endpoint descriptor to Configuration descriptor */
   __USBD_CMPSIT_SET_EP(pdev->tclasslist[pdev->classId].Eps[2].add, USBD_EP_TYPE_INTR, HID_VIA_EP_SIZE, \
-                       HID_HS_BINTERVAL, HID_FS_BINTERVAL);
+                       4, HID_FS_BINTERVAL);
 
   /* Update Config Descriptor and IAD descriptor */
   ((USBD_ConfigDescTypeDef *)pConf)->bNumInterfaces += 2U;
