@@ -1544,7 +1544,7 @@ static EE_Status PagesTransfer(uint16_t VirtAddress, EE_DATA_TYPE* Data, EE_Tran
         uhNbWrittenElements++;
         uwAddressNextWrite += EE_ELEMENT_SIZE;
       }
-      else if ((addressvalue != EE_PAGESTAT_ERASED) || (addressvalue2 != EE_PAGESTAT_ERASED)&&(addressvalue != 0x0000000000000000U)|| (addressvalue2 != 0x0000000000000000U))
+      else if ((addressvalue != EE_PAGESTAT_ERASED) || ((addressvalue2 != EE_PAGESTAT_ERASED)&&(addressvalue != 0x0000000000000000U)) || (addressvalue2 != 0x0000000000000000U))
 #else
       if (addressvalue != EE_PAGESTAT_ERASED)
 #endif

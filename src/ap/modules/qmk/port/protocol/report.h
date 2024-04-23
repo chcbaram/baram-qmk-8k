@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdbool.h>
 #include "keycode.h"
 #include "util.h"
+#include "hw_def.h"
 
 #ifdef JOYSTICK_ENABLE
 #    include "joystick.h"
@@ -132,13 +133,8 @@ enum desktop_usages {
 
 #define NKRO_REPORT_BITS 30
 
-#ifdef KEYBOARD_SHARED_EP
-#    define KEYBOARD_REPORT_SIZE 9
-#else
-#    define KEYBOARD_REPORT_SIZE 8
-#endif
-
-#define KEYBOARD_REPORT_KEYS 6
+#define KEYBOARD_REPORT_KEYS HW_KEYS_PRESS_MAX
+#define KEYBOARD_REPORT_SIZE (HW_KEYS_PRESS_MAX + 2)
 
 #ifdef __cplusplus
 extern "C" {

@@ -49,7 +49,7 @@
 
 #define _USE_HW_KEYS
 #define      HW_KEYS_MAX_CH         HW_BUTTON_MAX_CH
-#define      HW_KEYS_PRESS_MAX      6
+#define      HW_KEYS_PRESS_MAX      8
 
 #define _USE_HW_SPI
 #define      HW_SPI_MAX_CH          1

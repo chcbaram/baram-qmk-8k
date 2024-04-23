@@ -3,22 +3,27 @@
 #include "cli_gui.h"
 #include "spi.h"
 
+
+#define PSSI_BUX_MAX        1024
+
+
 static void cliCmd(cli_args_t *args);
 static bool pssiInitHw(void);
-
+static bool pssiSpiStart(void);
 
 static uint8_t spi_ch = _DEF_SPI1;
+static bool is_enable = true;
+
 
 static PSSI_HandleTypeDef hpssi;
 static DMA_NodeTypeDef Node_GPDMA1_Channel2;
 static DMA_QListTypeDef List_GPDMA1_Channel2;
 static DMA_HandleTypeDef handle_GPDMA1_Channel2;
 
-static uint8_t pssi_buf[1024];
+static uint8_t  pssi_buf[PSSI_BUX_MAX];
 static uint32_t pssi_dma_pre_time = 0;
 static uint32_t pssi_dma_exe_time = 0;
-
-
+static bool     pssi_dma_req      = false;
 
 
 
@@ -52,6 +57,37 @@ bool pssiInit(void)
   return true;
 }
 
+bool pssiUpdate(void)
+{
+  if (!is_enable)
+    return false;
+
+  if (pssi_dma_req == true)
+    return false;
+
+  pssiSpiStart();   
+
+  return true;
+}
+
+bool pssiReadBuf(void *p_data, uint32_t length)
+{
+  if (length > PSSI_BUX_MAX)
+    return false;
+
+  memcpy(p_data, pssi_buf, length);
+  return true;
+}
+
+bool pssiSpiStart(void)
+{
+  uint16_t spi_data = (uint16_t)(~(1 << 15));
+
+  pssi_dma_pre_time = micros();
+  spiDmaTxStart(spi_ch, (uint8_t *)&spi_data, 1);
+  return true;
+}
+
 bool pssiInitHw(void)
 {
   hpssi.Instance                = PSSI;
@@ -73,6 +109,7 @@ void GPDMA1_Channel2_IRQHandler(void)
 {
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel2);
 
+  pssi_dma_req = false;
   pssi_dma_exe_time = micros() - pssi_dma_pre_time;
 }
 

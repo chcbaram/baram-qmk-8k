@@ -46,7 +46,7 @@
 #include "cli.h"
 #include "log.h"
 #include "keys.h"
-
+#include "qbuffer.h"
 
 
 #if HW_USB_LOG == 1
@@ -89,11 +89,21 @@ static void cliCmd(cli_args_t *args);
 
 
 
+typedef struct
+{
+  uint8_t  buf[HID_KEYBOARD_REPORT_SIZE];
+} report_info_t;
+
+
 static USBD_SetupReqTypedef ep0_req;
 static uint8_t ep0_req_buf[USB_MAX_EP0_SIZE];
 
 __ALIGN_BEGIN  static uint8_t via_hid_usb_report[32] __ALIGN_END;
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
+
+
+static qbuffer_t     report_q;
+static report_info_t report_buf[128];
 
 
 
@@ -326,6 +336,18 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
   return true;
 }
 
+bool usbHidSendReport(uint8_t *p_data, uint16_t length)
+{
+  report_info_t report_info;
+
+  if (length > HID_KEYBOARD_REPORT_SIZE)
+    return false;
+
+  memcpy(report_info.buf, p_data, length);
+  qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+  return true;
+}
+
 
 /**
   * @brief  USBD_HID_Init
@@ -379,10 +401,12 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   (void)USBD_LL_PrepareReceive(pdev, HID_VIA_EP_OUT, via_hid_usb_report, 32);
 
 
-  static bool is_cli = false;
-  if (is_cli == false)
+  static bool is_first = true;
+  if (is_first)
   {
-    is_cli = true;
+    is_first = false;
+
+    qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
 
     logPrintf("[OK] usb hid - keyboard\n");
     cliAdd("usbhid", cliCmd);
@@ -783,8 +807,13 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   
   keysUpdate();
 
-  memset(hid_buf, 0, sizeof(hid_buf));
 
+  if (qbufferAvailable(&report_q) > 0)
+  {   
+    qbufferRead(&report_q, (uint8_t *)hid_buf, 1);  
+  }
+
+  //memset(hid_buf, 0, sizeof(hid_buf));
 
   #ifdef USE_USBD_COMPOSITE
   USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);  

@@ -21,6 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "host.h"
 #include "util.h"
 #include "debug.h"
+#include "usb.h"
+
 
 #ifdef DIGITIZER_ENABLE
 #    include "digitizer.h"
@@ -72,36 +74,42 @@ led_t host_keyboard_led_state(void) {
 }
 
 /* send report */
-void host_keyboard_send(report_keyboard_t *report) {
+void host_keyboard_send(report_keyboard_t *report)
+{
 #ifdef BLUETOOTH_ENABLE
-    if (where_to_send() == OUTPUT_BLUETOOTH) {
-        bluetooth_send_keyboard(report);
-        return;
-    }
+  if (where_to_send() == OUTPUT_BLUETOOTH)
+  {
+    bluetooth_send_keyboard(report);
+    return;
+  }
 #endif
 
-    logPrintf("report : 0x%X, %X %X  %X  %X  %X  %X \n",
-              report->mods,
-              report->keys[0],
-              report->keys[1],
-              report->keys[2],
-              report->keys[3],
-              report->keys[4],
-              report->keys[5]);
+  usbHidSendReport((uint8_t *)report, sizeof(report_keyboard_t));
 
-    if (!driver) return;
+  logPrintf("report : 0x%02X, %02X %02X %02X %02X %02X %02X \n",
+            report->mods,
+            report->keys[0],
+            report->keys[1],
+            report->keys[2],
+            report->keys[3],
+            report->keys[4],
+            report->keys[5]);
+
+  if (!driver) return;
 #ifdef KEYBOARD_SHARED_EP
-    report->report_id = REPORT_ID_KEYBOARD;
+  report->report_id = REPORT_ID_KEYBOARD;
 #endif
-    (*driver->send_keyboard)(report);
+  (*driver->send_keyboard)(report);
 
-    if (debug_keyboard) {
-        dprintf("keyboard_report: %02X | ", report->mods);
-        for (uint8_t i = 0; i < KEYBOARD_REPORT_KEYS; i++) {
-            dprintf("%02X ", report->keys[i]);
-        }
-        dprint("\n");
+  if (debug_keyboard)
+  {
+    dprintf("keyboard_report: %02X | ", report->mods);
+    for (uint8_t i = 0; i < KEYBOARD_REPORT_KEYS; i++)
+    {
+      dprintf("%02X ", report->keys[i]);
     }
+    dprint("\n");
+  }
 }
 
 void host_nkro_send(report_nkro_t *report) {

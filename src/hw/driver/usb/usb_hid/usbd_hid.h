@@ -148,7 +148,7 @@ uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
-
+bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 
 
 /**

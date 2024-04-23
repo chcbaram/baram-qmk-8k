@@ -6,6 +6,12 @@
 #include "hw_def.h"
 
 
+#define EECONFIG_USER_DATA_SIZE 128
+#define TOTAL_EEPROM_BYTE_COUNT 2048
+
+
+void     eeprom_init(void);
+void     eeprom_task(void);
 uint8_t  eeprom_read_byte(const uint8_t *addr);
 uint16_t eeprom_read_word(const uint16_t *addr);
 uint32_t eeprom_read_dword(const uint32_t *addr);
@@ -18,7 +24,3 @@ void     eeprom_update_byte(uint8_t *addr, uint8_t value);
 void     eeprom_update_word(uint16_t *addr, uint16_t value);
 void     eeprom_update_dword(uint32_t *addr, uint32_t value);
 void     eeprom_update_block(const void *buf, void *addr, size_t len);
-
-#define TOTAL_EEPROM_BYTE_COUNT 2048
-
-

@@ -10,6 +10,8 @@ extern "C" {
 
 
 bool pssiInit(void);
+bool pssiUpdate(void);
+bool pssiReadBuf(void *p_data, uint32_t length);
 
 
 #ifdef __cplusplus

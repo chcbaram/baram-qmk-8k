@@ -1,11 +1,46 @@
 #include "eeprom.h"
+#include "hw/include/eeprom.h"
+#include "qbuffer.h"
 
 
-static uint8_t eeprom_buf[TOTAL_EEPROM_BYTE_COUNT];
+#define EEPROM_WRITE_Q_BUF_MAX  (TOTAL_EEPROM_BYTE_COUNT + 1)
+
+
+typedef struct
+{
+  uint16_t addr;
+  uint8_t  data;
+} eeprom_write_t;
+
+static uint8_t        eeprom_buf[TOTAL_EEPROM_BYTE_COUNT];
+static qbuffer_t      write_q;
+static eeprom_write_t write_buf[EEPROM_WRITE_Q_BUF_MAX];
 
 
 
+void eeprom_init(void)
+{
+  eepromRead(0, eeprom_buf, TOTAL_EEPROM_BYTE_COUNT);
+  qbufferCreateBySize(&write_q, (uint8_t *)write_buf, sizeof(eeprom_write_t), EEPROM_WRITE_Q_BUF_MAX); 
+}
 
+void eeprom_task(void)
+{
+  eeprom_write_t write_byte;
+
+  if (qbufferAvailable(&write_q) > 0)
+  {
+    qbufferRead(&write_q, (uint8_t *)&write_byte, 1);
+    if (eepromWriteByte(write_byte.addr, write_byte.data))
+    {
+      logPrintf("eepromWriteByte() OK %d:0x%02X\n", write_byte.addr, write_byte.data);
+    }
+    else
+    {
+      logPrintf("eepromWriteByte() Fail\n");
+    }
+  }
+}
 
 uint8_t  eeprom_read_byte(const uint8_t *addr)
 {
@@ -47,7 +82,13 @@ void eeprom_read_block(void *buf, const void *addr, uint32_t len)
 
 void eeprom_write_byte(uint8_t *addr, uint8_t value)
 {
+  eeprom_write_t write_byte;
+
   eeprom_buf[(uint32_t)addr] = value;
+
+  write_byte.addr = (uint32_t)addr;
+  write_byte.data = value;
+  qbufferWrite(&write_q, (uint8_t *)&write_byte, 1);
 }
 
 void eeprom_write_word(uint16_t *addr, uint16_t value)
