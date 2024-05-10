@@ -11,6 +11,7 @@ extern "C" {
 
 bool pssiInit(void);
 bool pssiUpdate(void);
+bool pssiIsBusy(void);
 bool pssiReadBuf(void *p_data, uint32_t length);
 
 

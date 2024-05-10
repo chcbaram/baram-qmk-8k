@@ -16,6 +16,7 @@ static bool pssiSpiStart(void);
 
 static uint8_t spi_ch = _DEF_SPI1;
 static bool is_enable = true;
+static bool is_busy = false;
 
 
 static PSSI_HandleTypeDef hpssi;
@@ -28,6 +29,9 @@ static uint32_t pssi_dma_pre_time = 0;
 static uint32_t pssi_dma_exe_time = 0;
 static bool     pssi_dma_req      = false;
 
+static uint16_t spi_buf = (uint16_t)(~(1 << 15));
+
+
 
 
 bool pssiInit(void)
@@ -37,14 +41,6 @@ bool pssiInit(void)
   
   ret &= spiBegin(spi_ch);
 
-
-  if (ret)
-  {
-    uint16_t spi_data = 0xFFFF;
-    spiDmaTxStart(spi_ch, (uint8_t *)&spi_data, 1);
-  }
-  delay(2);
-
   pssiInitHw();
 
 
@@ -52,12 +48,25 @@ bool pssiInit(void)
   {
     Error_Handler();
   }
+  memset(pssi_buf, 0xFF, sizeof(pssi_buf));
+
+  {
+    uint16_t spi_data = 0xFFFF;
+    spiDmaTxStart(spi_ch, (uint8_t *)&spi_data, 1);
+  }
+  delay(2);
 
   logPrintf("[%s] pssiInit()\n", ret ? "OK":"NG");
 
   cliAdd("pssi", cliCmd);
 
+
   return true;
+}
+
+bool pssiIsBusy(void)
+{
+  return is_busy; 
 }
 
 bool pssiUpdate(void)
@@ -65,12 +74,15 @@ bool pssiUpdate(void)
   if (!is_enable)
     return false;
 
-  if (pssi_dma_req == true)
-    return false;
+  is_busy = pssi_dma_req;
 
-  pssiSpiStart();   
-
-  return true;
+  if (!is_busy)
+  {
+    pssi_dma_req = true;
+  }
+  pssiSpiStart();
+  
+  return is_busy;
 }
 
 bool pssiReadBuf(void *p_data, uint32_t length)
@@ -84,10 +96,8 @@ bool pssiReadBuf(void *p_data, uint32_t length)
 
 bool pssiSpiStart(void)
 {
-  uint16_t spi_data = (uint16_t)(~(1 << 15));
-
   pssi_dma_pre_time = micros();
-  spiDmaTxStart(spi_ch, (uint8_t *)&spi_data, 1);
+  spiDmaTxStart(spi_ch, (uint8_t *)&spi_buf, 1);
   return true;
 }
 

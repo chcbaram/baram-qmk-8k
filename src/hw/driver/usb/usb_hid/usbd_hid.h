@@ -147,8 +147,16 @@ uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t 
 uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 
+typedef struct
+{
+  uint32_t freq_hz;
+  uint32_t time_max;
+  uint32_t time_min;
+} usb_hid_rate_info_t;
+
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
+bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info);
 
 
 /**

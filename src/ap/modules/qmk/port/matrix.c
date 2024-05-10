@@ -1,20 +1,22 @@
 #include "matrix.h"
 #include "debounce.h"
+#include "keyboard.h"
 #include "util.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include "cli.h"
 #include "key_scan/pssi.h"
-
+#include "usb.h"
 
 
 /* matrix state(1:on, 0:off) */
 static matrix_row_t raw_matrix[MATRIX_ROWS]; // raw values
 static matrix_row_t matrix[MATRIX_ROWS];     // debounced values
-static void         cliCmd(cli_args_t *args);
+static bool         is_info_enable = false;
 
-
+static void cliCmd(cli_args_t *args);
+static void matrix_info(void);
 
 
 
@@ -41,6 +43,14 @@ void matrix_print(void)
   // }
 }
 
+bool matrix_can_read(void) 
+{
+  bool ret;
+
+  ret = pssiUpdate();
+  return ret;
+}
+
 matrix_row_t matrix_get_row(uint8_t row)
 {
   return matrix[row];
@@ -51,8 +61,6 @@ uint8_t matrix_scan(void)
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
   uint8_t cols_buf[MATRIX_COLS];
 
-
-  pssiUpdate();
   pssiReadBuf(cols_buf, MATRIX_COLS);
 
   for (int rows=0; rows<MATRIX_ROWS; rows++)
@@ -75,13 +83,44 @@ uint8_t matrix_scan(void)
 
   changed = debounce(raw_matrix, matrix, MATRIX_ROWS, changed);
 
+  matrix_info();
+
   return (uint8_t)changed;
+}
+
+void matrix_info(void)
+{
+#ifdef DEBUG_MATRIX_SCAN_RATE
+  static uint32_t pre_time = 0;
+
+  if (is_info_enable)
+  {
+    if (millis()-pre_time >= 1000)
+    {
+      pre_time = millis();
+      usb_hid_rate_info_t hid_info;
+
+      usbHidGetRateInfo(&hid_info);
+      
+      logPrintf("Scan Rate : %d Hz\n", get_matrix_scan_rate());
+      logPrintf("Poll Rate : %d Hz, %d us(max), %d us(min)\n",
+                hid_info.freq_hz,
+                hid_info.time_max,
+                hid_info.time_min);
+    }
+  }
+#endif
 }
 
 void cliCmd(cli_args_t *args)
 {
   bool ret = false;
 
+  if (args->argc == 1 && args->isStr(0, "info"))
+  {
+    cliPrintf("is_info_enable : %s\n", is_info_enable ? "on":"off");
+    ret = true;
+  }
 
   if (args->argc == 2 && args->isStr(0, "row"))
   {
@@ -96,8 +135,25 @@ void cliCmd(cli_args_t *args)
     ret = true;
   }
 
+  if (args->argc == 2 && args->isStr(0, "info"))
+  {
+    if (args->isStr(1, "on"))
+    {
+      is_info_enable = true;
+    }
+    if (args->isStr(1, "off"))
+    {
+      is_info_enable = false;
+    }
+    ret = true;
+  }
+
   if (ret == false)
   {
+    cliPrintf("matrix info\n");
     cliPrintf("matrix row data\n");
+    #ifdef DEBUG_MATRIX_SCAN_RATE
+    cliPrintf("matrix info on:off\n");
+    #endif    
   }
 }

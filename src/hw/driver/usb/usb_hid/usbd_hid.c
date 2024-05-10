@@ -913,6 +913,13 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
 #endif /* USE_USBD_COMPOSITE  */
 
 
+bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
+{
+  p_info->freq_hz = data_in_rate;
+  p_info->time_max = rate_time_max;
+  p_info->time_min = rate_time_min;
+  return true;
+}
 
 #ifdef _USE_HW_CLI
 void cliCmd(cli_args_t *args)
