@@ -86,14 +86,14 @@ void host_keyboard_send(report_keyboard_t *report)
 
   usbHidSendReport((uint8_t *)report, sizeof(report_keyboard_t));
 
-  logPrintf("report : 0x%02X, %02X %02X %02X %02X %02X %02X \n",
-            report->mods,
-            report->keys[0],
-            report->keys[1],
-            report->keys[2],
-            report->keys[3],
-            report->keys[4],
-            report->keys[5]);
+  // logPrintf("report : 0x%02X, %02X %02X %02X %02X %02X %02X \n",
+  //           report->mods,
+  //           report->keys[0],
+  //           report->keys[1],
+  //           report->keys[2],
+  //           report->keys[3],
+  //           report->keys[4],
+  //           report->keys[5]);
 
   if (!driver) return;
 #ifdef KEYBOARD_SHARED_EP

@@ -4,6 +4,9 @@
 #include "spi.h"
 
 
+#include QMK_KEYMAP_CONFIG_H
+
+
 #define PSSI_BUX_MAX        1024
 
 
@@ -301,17 +304,17 @@ void cliCmd(cli_args_t *args)
       cliPrintf("SCAN TIME : %d us\n", pssi_dma_exe_time);      
 
       cliPrintf("     ");
-      for (int cols=0; cols<12; cols++)
+      for (int cols=0; cols<MATRIX_COLS; cols++)
       {
         cliPrintf("%02d ", cols);
       }
       cliPrintf("\n");
 
-      for (int rows=0; rows<4; rows++)
+      for (int rows=0; rows<MATRIX_ROWS; rows++)
       {
         cliPrintf("%02d : ", rows);
 
-        for (int cols=0; cols<12; cols++)
+        for (int cols=0; cols<MATRIX_COLS; cols++)
         {
           uint8_t bit_data;
           
@@ -324,9 +327,9 @@ void cliCmd(cli_args_t *args)
         }
         cliPrintf("\n");
       }
-      cliMoveUp(6);
+      cliMoveUp(MATRIX_ROWS+2);
     }
-    cliMoveDown(6);
+    cliMoveDown(MATRIX_ROWS+2);
 
     cliShowCursor(true);
 

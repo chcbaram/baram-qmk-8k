@@ -21,17 +21,17 @@
 #include "usbd_desc.h"
 #include "usbd_conf.h"
 
+#include QMK_KEYMAP_CONFIG_H
 
 
-
-#define USBD_VID                      0x0483
-#define USBD_PID_HS                   0x5201
+#define USBD_VID                      USB_VID
+#define USBD_PID_HS                   USB_PID
 
 
 #define USBD_LANGID_STRING            1033
 #define USBD_MANUFACTURER_STRING      "BARAM"
-#define USBD_PRODUCT_STRING_HS        "BARAM-45K-HS-K"
-#define USBD_PRODUCT_STRING_FS        "BARAM-45K-FS-K"
+#define USBD_PRODUCT_STRING_HS        USB_STRING
+#define USBD_PRODUCT_STRING_FS        USB_STRING
 #define USBD_CONFIGURATION_STRING_HS  "HID-K Config"
 #define USBD_INTERFACE_STRING_HS      "HID-K Interface"
 
