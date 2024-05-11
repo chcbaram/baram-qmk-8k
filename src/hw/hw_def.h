@@ -24,9 +24,6 @@
 #define      HW_UART_CH_USB         _DEF_UART2
 #define      HW_UART_CH_CLI         HW_UART_CH_SWD
 
-#define _USE_HW_BUTTON
-#define      HW_BUTTON_MAX_CH       2
-
 #define _USE_HW_CLI
 #define      HW_CLI_CMD_LIST_MAX    32
 #define      HW_CLI_CMD_NAME_MAX    16
@@ -76,11 +73,10 @@
 //-- CLI
 //
 #define _USE_CLI_HW_BUTTON          1
-#define _USE_CLI_HW_KEYSCAN         1
 #define _USE_CLI_HW_EEPROM          1
 #define _USE_CLI_HW_I2C             1
 #define _USE_CLI_HW_FLASH           1
 #define _USE_CLI_HW_RESET           1
-
+#define _USE_CLI_HW_KEYS            1
 
 #endif

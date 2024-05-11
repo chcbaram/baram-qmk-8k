@@ -141,31 +141,6 @@ uint8_t  buttonGetPressedCount(void)
   return ret;
 }
 
-__weak void buttonUpdateEvent(void)
-{
-
-}
-
-void EXTI0_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);    buttonUpdateEvent(); }
-void EXTI1_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);    buttonUpdateEvent(); }
-void EXTI2_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);    buttonUpdateEvent(); }
-void EXTI3_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);    buttonUpdateEvent(); }
-void EXTI4_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);    buttonUpdateEvent(); }
-void EXTI5_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);    buttonUpdateEvent(); }
-void EXTI6_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);    buttonUpdateEvent(); }
-void EXTI7_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);    buttonUpdateEvent(); }
-void EXTI8_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);    buttonUpdateEvent(); }
-void EXTI9_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);    buttonUpdateEvent(); }
-void EXTI10_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);   buttonUpdateEvent(); }
-void EXTI11_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);   buttonUpdateEvent(); }
-void EXTI12_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);   buttonUpdateEvent(); }
-void EXTI13_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);   buttonUpdateEvent(); }
-void EXTI14_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);   buttonUpdateEvent(); }
-void EXTI15_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);   buttonUpdateEvent(); }
-
-
-
-
 #if CLI_USE(HW_BUTTON)
 void cliButton(cli_args_t *args)
 {

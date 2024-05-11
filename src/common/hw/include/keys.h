@@ -9,20 +9,12 @@ extern "C" {
 
 
 
-typedef struct
-{
-  uint8_t modifier;
-  uint8_t reserved;
-  uint8_t keycode[HW_KEYS_PRESS_MAX];
-} keys_keycode_t;
-
 
 bool keysInit(void);
-void keysUpdate(void);
-bool keysGetKeyCode(keys_keycode_t *p_keycode);
+bool keysIsBusy(void);
+bool keysUpdate(void);
+bool keysGetPressed(uint16_t row, uint16_t col);
 
-bool keysGetChangedCode(keys_keycode_t *p_keycode);
-bool keysGetPressedCode(keys_keycode_t *p_keycode);
 
 #ifdef __cplusplus
 }

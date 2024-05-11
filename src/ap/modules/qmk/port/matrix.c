@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "cli.h"
-#include "key_scan/pssi.h"
 #include "usb.h"
+#include "keys.h"
 
 
 /* matrix state(1:on, 0:off) */
@@ -45,10 +45,8 @@ void matrix_print(void)
 
 bool matrix_can_read(void) 
 {
-  bool ret;
-
-  ret = pssiUpdate();
-  return ret;
+  keysUpdate();
+  return !keysIsBusy();
 }
 
 matrix_row_t matrix_get_row(uint8_t row)
@@ -59,22 +57,13 @@ matrix_row_t matrix_get_row(uint8_t row)
 uint8_t matrix_scan(void)
 {
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
-  uint8_t cols_buf[MATRIX_COLS];
 
-  pssiReadBuf(cols_buf, MATRIX_COLS);
 
   for (int rows=0; rows<MATRIX_ROWS; rows++)
   {
     for (int cols=0; cols<MATRIX_COLS; cols++)
     {
-      uint8_t bit_data;
-
-      bit_data = ~cols_buf[cols];
-
-      if (bit_data & (1<<rows))
-      {
-        curr_matrix[rows] |= (1<<cols);
-      }
+      curr_matrix[rows] |= (keysGetPressed(rows, cols)<<cols);
     }
   }
 

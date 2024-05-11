@@ -82,11 +82,11 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length);
 
 #if (USBD_SUPPORT_USER_STRING_DESC == 1U)
 static uint8_t *USBD_HID_GetUsrStrDescriptor(struct _USBD_HandleTypeDef *pdev, uint8_t index,  uint16_t *length);
-#endif 
+#endif
 
 
 static void cliCmd(cli_args_t *args);
-
+static void usbHidMeasurePollRate(void);
 
 
 typedef struct
@@ -330,23 +330,7 @@ static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
 
 
 
-bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
-{
-  via_hid_receive_func = func;
-  return true;
-}
 
-bool usbHidSendReport(uint8_t *p_data, uint16_t length)
-{
-  report_info_t report_info;
-
-  if (length > HID_KEYBOARD_REPORT_SIZE)
-    return false;
-
-  memcpy(report_info.buf, p_data, length);
-  qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
-  return true;
-}
 
 
 /**
@@ -795,8 +779,6 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
     return (uint8_t)USBD_OK;
   }
   
-  keysUpdate();
-
 
   if (qbufferAvailable(&report_q) > 0)
   {   
@@ -863,24 +845,7 @@ static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 uint8_t USBD_HID_SOF(USBD_HandleTypeDef *pdev)
 {
-  static uint32_t cnt = 0; 
-
-
-  rate_time_sof_pre = micros();
-  if (cnt >= 8000)
-  {
-    cnt = 0;
-    data_in_rate = data_in_cnt;
-    rate_time_min = rate_time_min_check; 
-    rate_time_max = rate_time_max_check;     
-    data_in_cnt = 0;
-
-    rate_time_min_check = 0xFFFF; 
-    rate_time_max_check = 0;     
-  }  
-  cnt++;
-
-  keysUpdate();
+  usbHidMeasurePollRate();
 
   if (qbufferAvailable(&report_q) > 0)
   {   
@@ -911,6 +876,44 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
 }
 #endif /* USE_USBD_COMPOSITE  */
 
+
+bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
+{
+  via_hid_receive_func = func;
+  return true;
+}
+
+bool usbHidSendReport(uint8_t *p_data, uint16_t length)
+{
+  report_info_t report_info;
+
+  if (length > HID_KEYBOARD_REPORT_SIZE)
+    return false;
+
+  memcpy(report_info.buf, p_data, length);
+  qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+  return true;
+}
+
+void usbHidMeasurePollRate(void)
+{
+  static uint32_t cnt = 0; 
+
+
+  rate_time_sof_pre = micros();
+  if (cnt >= 8000)
+  {
+    cnt = 0;
+    data_in_rate = data_in_cnt;
+    rate_time_min = rate_time_min_check; 
+    rate_time_max = rate_time_max_check;     
+    data_in_cnt = 0;
+
+    rate_time_min_check = 0xFFFF; 
+    rate_time_max_check = 0;     
+  }  
+  cnt++;  
+}
 
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
 {
