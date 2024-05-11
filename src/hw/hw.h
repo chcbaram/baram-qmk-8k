@@ -21,6 +21,8 @@ extern "C" {
 #include "eeprom.h"
 #include "i2c.h"
 #include "flash.h"
+#include "rtc.h"
+#include "reset.h"
 
 
 bool hwInit(void);
