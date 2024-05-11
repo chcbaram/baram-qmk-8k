@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 set(QMK_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/ap/modules/qmk")
 
 
-#set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/45k)
+# set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/45k)
 set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/68k)
 
 

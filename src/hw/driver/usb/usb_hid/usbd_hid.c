@@ -49,7 +49,7 @@
 #include "qbuffer.h"
 
 
-#if HW_USB_LOG == 1
+#if HW_USB_LOG == 0
 #define logDebug(...)                              \
   {                                                \
     if (HW_LOG_CH == HW_UART_CH_USB) logDisable(); \
@@ -104,7 +104,7 @@ static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 static qbuffer_t     report_q;
 static report_info_t report_buf[128];
-
+static uint8_t       hid_buf[HID_KEYBOARD_REPORT_SIZE] = {0,};
 
 
 USBD_ClassTypeDef USBD_HID =
@@ -499,14 +499,6 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
 
         case USBD_HID_REQ_SET_REPORT:  
           logDebug("  USBD_HID_REQ_SET_REPORT  : 0x%X, 0x%d\n", req->wValue, req->wLength);     
-          {
-            const uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] = {0, 0, 0, 0, 0, 0, 0, 0};
-            #ifdef USE_USBD_COMPOSITE
-            USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);      
-            #else
-            USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);                
-            #endif
-          }
           ep0_req = *req;
           USBD_CtlPrepareRx(pdev, ep0_req_buf, req->wLength);
           break;
@@ -798,8 +790,6 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   be caused by  a new transfer before the end of the previous transfer */
   ((USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId])->state = USBD_HID_IDLE;
 
-  static uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] = {0,};
-
   if (epnum != (HID_EPIN_ADDR & 0x0F))
   {
     return (uint8_t)USBD_OK;
@@ -812,8 +802,6 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   {   
     qbufferRead(&report_q, (uint8_t *)hid_buf, 1);  
   }
-
-  //memset(hid_buf, 0, sizeof(hid_buf));
 
   #ifdef USE_USBD_COMPOSITE
   USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);  
@@ -893,6 +881,17 @@ uint8_t USBD_HID_SOF(USBD_HandleTypeDef *pdev)
   cnt++;
 
   keysUpdate();
+
+  if (qbufferAvailable(&report_q) > 0)
+  {   
+    qbufferRead(&report_q, (uint8_t *)hid_buf, 1);  
+
+    #ifdef USE_USBD_COMPOSITE
+    USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);  
+    #else
+    USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);  
+    #endif
+  }
 
   return (uint8_t)USBD_OK;
 }

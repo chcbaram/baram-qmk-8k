@@ -33,7 +33,9 @@ void eeprom_task(void)
     qbufferRead(&write_q, (uint8_t *)&write_byte, 1);
     if (eepromWriteByte(write_byte.addr, write_byte.data))
     {
+      #if 0
       logPrintf("eepromWriteByte() OK %d:0x%02X\n", write_byte.addr, write_byte.data);
+      #endif
     }
     else
     {

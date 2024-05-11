@@ -6,9 +6,6 @@
 #include "hw_def.h"
 
 
-#define EECONFIG_USER_DATA_SIZE 128
-#define TOTAL_EEPROM_BYTE_COUNT 2048
-
 
 void     eeprom_init(void);
 void     eeprom_task(void);

@@ -1,9 +1,14 @@
 #pragma once
 
 
-#define USB_STRING                  "BARAM-68K-HS-K"
+#define KBD_NAME                    "BARAM-68K-HS-K"
+
 #define USB_VID                     0x0483
 #define USB_PID                     0x5202
+
+#define EEPROM_CHIP_ZD24C128 
+#define EECONFIG_USER_DATA_SIZE     512
+#define TOTAL_EEPROM_BYTE_COUNT     4096
 
 #define DYNAMIC_KEYMAP_LAYER_COUNT  8
 

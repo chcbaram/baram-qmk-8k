@@ -4,13 +4,16 @@
 
 
 #include "bsp.h"
+#include QMK_KEYMAP_CONFIG_H
 
 
-#define _DEF_FIRMWATRE_VERSION    "V240421R1"
-#define _DEF_BOARD_NAME           "BARAM-45K-HS-FW"
+#define _DEF_FIRMWATRE_VERSION    "V240511R1"
+#define _DEF_BOARD_NAME           "BARAM-QMK-8K-FW"
 
 
 #define _USE_HW_MICROS
+#define _USE_HW_FLASH
+
 
 #define _USE_HW_LED
 #define      HW_LED_MAX_CH          3
@@ -58,6 +61,8 @@
 #define      HW_EEPROM_MAX_PAGES    32
 #define      HW_EEPROM_MODE         0
 
+#define _USE_HW_I2C
+#define      HW_I2C_MAX_CH          1
 
 
 //-- CLI
@@ -65,5 +70,8 @@
 #define _USE_CLI_HW_BUTTON          1
 #define _USE_CLI_HW_KEYSCAN         1
 #define _USE_CLI_HW_EEPROM          1
+#define _USE_CLI_HW_I2C             1
+#define _USE_CLI_HW_FLASH           1
+
 
 #endif

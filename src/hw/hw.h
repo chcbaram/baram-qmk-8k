@@ -19,6 +19,8 @@ extern "C" {
 #include "keys.h"
 #include "spi.h"
 #include "eeprom.h"
+#include "i2c.h"
+#include "flash.h"
 
 
 bool hwInit(void);

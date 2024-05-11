@@ -2,7 +2,7 @@
 #include "cli.h"
 
 
-#ifdef _USE_HW_EEPROM
+#if defined(_USE_HW_EEPROM) && defined(EEPROM_CHIP_EMUL)
 #include "eeprom_emul.h"
 
 #if PAGES_NUMBER > HW_EEPROM_MAX_PAGES
@@ -44,8 +44,9 @@ bool eepromInit()
   HAL_FLASH_Unlock();
   ee_ret = EE_Init(EE_FORCED_ERASE);
   HAL_FLASH_Lock();
-  logPrintf("[%s] eepromInit()\n", ee_ret == EE_OK ? "OK":"NG");
-
+  logPrintf("[%s] eepromInit()\n", ee_ret == EE_OK ? "OK":"E_");
+  logPrintf("     chip  : emul\n");
+  
   is_init = ee_ret == EE_OK ? true:false;
 
 #if CLI_USE(HW_EEPROM)
