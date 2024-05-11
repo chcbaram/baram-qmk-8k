@@ -45,6 +45,7 @@ bool hwInit(void)
   usbInit();
   usbBegin(USB_CMP_MODE);
   keysInit();
-
+  loaderInit();
+  
   return true;
 }

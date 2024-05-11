@@ -5,7 +5,6 @@
 
 int main(void)
 {
-
   bspInit();
   
   hwInit();

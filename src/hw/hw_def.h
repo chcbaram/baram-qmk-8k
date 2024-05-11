@@ -13,7 +13,8 @@
 
 #define _USE_HW_MICROS
 #define _USE_HW_FLASH
-
+#define _USE_HW_YMODEM
+#define _USE_HW_LOADER
 
 #define _USE_HW_LED
 #define      HW_LED_MAX_CH          3
@@ -69,6 +70,16 @@
 #define      HW_RESET_BOOT          1
 
 
+#define FLASH_SIZE_TAG              0x400
+#define FLASH_SIZE_VEC              0x400
+#define FLASH_SIZE_VER              0x400
+#define FLASH_SIZE_FIRM             (256*1024)
+
+#define FLASH_ADDR_BOOT             0x08000000
+#define FLASH_ADDR_FIRM             0x08020000
+#define FLASH_ADDR_UPDATE           0x08200000
+
+
 
 //-- CLI
 //
@@ -78,5 +89,7 @@
 #define _USE_CLI_HW_FLASH           1
 #define _USE_CLI_HW_RESET           1
 #define _USE_CLI_HW_KEYS            1
+#define _USE_CLI_HW_LOADER          1
+
 
 #endif

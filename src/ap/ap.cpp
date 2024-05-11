@@ -48,9 +48,9 @@ void cliUpdate(void)
   if (cli_ch != cliGetPort())
   {
     if (cli_ch == HW_UART_CH_USB)
-      logPrintf("CLI To USB\n");
+      logPrintf("\nCLI To USB\n");
     else
-      logPrintf("CLI To UART\n");
+      logPrintf("\nCLI To UART\n");
     cliOpen(cli_ch, 0);
   }
 

@@ -79,3 +79,15 @@ void utilUpdateCrc(uint16_t *p_crc_cur, uint8_t data_in)
   i = ((unsigned short)(crc >> 8) ^ data_in) & 0xFF;
   *p_crc_cur = (crc << 8) ^ util_crc_table[i];
 }
+
+uint16_t utilCalcCRC(uint16_t crc_cur, uint8_t *p_data, uint32_t length)
+{
+  uint16_t crc_ret = crc_cur;
+
+  for (int i=0; i<length; i++)
+  {
+    utilUpdateCrc(&crc_ret, p_data[i]);
+  }
+
+  return crc_ret;
+}
