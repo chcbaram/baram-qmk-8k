@@ -125,7 +125,8 @@ target_compile_options(${EXECUTABLE} PRIVATE
   )
 
 target_link_options(${EXECUTABLE} PRIVATE
-  -T../src/bsp/ldscript/STM32U5A5ZJTXQ_FLASH.ld
+  # -T../src/bsp/ldscript/STM32U5A5ZJTXQ_FLASH.ld
+  -T../src/bsp/ldscript/STM32U5A5ZJTXQ_FLASH_BOOT.ld
 
   -mcpu=cortex-m33
   -mthumb

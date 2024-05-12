@@ -2,19 +2,19 @@
 	"version": "2.0.0",
   "tasks": [
     {
-      "label": "configure",
+      "label": "build-configure",
       "type": "shell",
       "command": "cmake -S . -B build",
       "problemMatcher": []
     },  
     {
-      "label": "configure for win",
+      "label": "build-configure for win",
       "type": "shell",
       "command": "cmake -S . -B build -G 'MinGW Makefiles'",
       "problemMatcher": []
     },       
     {
-      "label": "build",
+      "label": "build-build",
       "type": "shell",
       "command": "cmake --build build -j10",
       "problemMatcher": [],
@@ -24,10 +24,18 @@
       }
     },
     {
-      "label": "clean",
+      "label": "build-clean",
       "type": "shell",
       "command": "cmake --build build --target clean",
       "problemMatcher": [],
+    },
+
+    {
+      "label": "uf2-make-uf2",
+      "type": "shell",
+      "command": "tools/uf2/uf2conv.py build/baram-qmk-8k.bin --family 0xFFFF0001 --convert --output build/baram-qmk-8k.uf2",
+      "problemMatcher": [],
     }    
+
   ]
 }
