@@ -16,3 +16,4 @@
 #define MATRIX_COLS                 16
 
 #define DEBUG_MATRIX_SCAN_RATE
+#define GRAVE_ESC_ENABLE

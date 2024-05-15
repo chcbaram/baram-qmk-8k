@@ -35,6 +35,8 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
   ${QMK_ROOT_PATH}/quantum/send_string/*.c
   ${QMK_ROOT_PATH}/quantum/process_keycode/process_key_override.c
+  ${QMK_ROOT_PATH}/quantum/process_keycode/process_grave_esc.c
+
 
   
 

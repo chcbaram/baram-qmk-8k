@@ -153,3 +153,9 @@ add_custom_command(TARGET ${EXECUTABLE}
   COMMAND ${CMAKE_OBJCOPY} ARGS -O binary ${EXECUTABLE} ${PROJECT_NAME}.bin
   COMMENT "Invoking: Make Binary"
   )  
+
+# add_custom_command(TARGET ${EXECUTABLE} 
+#   POST_BUILD
+#   COMMAND ../tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${PROJECT_NAME}.uf2
+#   COMMENT "Invoking: Make UF2"
+#   )    
