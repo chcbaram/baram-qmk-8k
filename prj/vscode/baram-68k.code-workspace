@@ -15,6 +15,7 @@
       "**/prj": true,
       "**/Thumbs.db": true
     },
-    "cortex-debug.variableUseNaturalFormat": true
+    "cortex-debug.variableUseNaturalFormat": true,
+    "keyboard_path": "/keyboards/baram/68k",
   }
 }

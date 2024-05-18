@@ -3,7 +3,9 @@ set(QMK_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/ap/modules/qmk")
 
 
 # set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/45k)
-set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/68k)
+# set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/keyboards/baram/68k)
+
+set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/${KEYBOARD_PATH})
 
 
 # 지정한 폴더에 있는 파일만 포함한다.

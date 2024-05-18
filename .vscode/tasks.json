@@ -4,19 +4,16 @@
     {
       "label": "build-configure",
       "type": "shell",
+      "windows":{
+        "command": "cmake -S . -B build -G 'MinGW Makefiles'" ,
+      },
       "command": "cmake -S . -B build",
       "problemMatcher": []
     },  
     {
-      "label": "build-configure for win",
-      "type": "shell",
-      "command": "cmake -S . -B build -G 'MinGW Makefiles'",
-      "problemMatcher": []
-    },       
-    {
       "label": "build-build",
       "type": "shell",
-      "command": "cmake --build build -j10",
+      "command": "cmake -S . -B build -DKEYBOARD_PATH='${config:keyboard_path}'; cmake --build build -j10",
       "problemMatcher": [],
       "group": {
         "kind": "build",

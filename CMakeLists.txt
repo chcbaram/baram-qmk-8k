@@ -151,7 +151,7 @@ set (CMAKE_CXX_FLAGS "-fno-rtti")
 add_custom_command(TARGET ${EXECUTABLE} 
   POST_BUILD
   COMMAND ${CMAKE_OBJCOPY} ARGS -O binary ${EXECUTABLE} ${PROJECT_NAME}.bin
-  COMMENT "Invoking: Make Binary"
+  COMMENT "Invoking: Make Bin -> ${KEYBOARD_PATH}"
   )  
 
 file(READ "${QMK_KEYBOARD_PATH}/config.h" config_in)
