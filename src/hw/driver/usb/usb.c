@@ -196,6 +196,11 @@ bool usbIsConnect(void)
   return true;
 }
 
+bool usbIsSuspended(void)
+{
+  return USBD_is_suspended();
+}
+
 UsbMode_t usbGetMode(void)
 {
   return is_usb_mode;

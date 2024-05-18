@@ -111,6 +111,7 @@ void *USBD_static_malloc(uint32_t size);
 void USBD_static_free(void *p);
 
 bool USBD_is_connected(void);
+bool USBD_is_suspended(void);
 
 #endif /* __USBD_CONF_H */
 

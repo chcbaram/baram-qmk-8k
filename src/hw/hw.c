@@ -41,10 +41,11 @@ bool hwInit(void)
   eepromInit();
   spiInit();
   flashInit();
+  keysInit();
+  
   cdcInit();
   usbInit();
   usbBegin(USB_CMP_MODE);
-  keysInit();
   loaderInit();
   
   return true;

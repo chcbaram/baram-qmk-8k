@@ -87,6 +87,7 @@ static uint8_t *USBD_HID_GetUsrStrDescriptor(struct _USBD_HandleTypeDef *pdev, u
 
 static void cliCmd(cli_args_t *args);
 static void usbHidMeasurePollRate(void);
+static bool usbHidUpdateWakeUp(USBD_HandleTypeDef *pdev);
 
 
 typedef struct
@@ -327,7 +328,7 @@ __ALIGN_BEGIN static uint8_t HID_VIA_ReportDesc[HID_KEYBOARD_VIA_REPORT_DESC_SIZ
 };
 
 static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
-
+extern USBD_HandleTypeDef USBD_Device;
 
 
 
@@ -392,7 +393,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
 
-    logPrintf("[OK] usb hid - keyboard\n");
+    logPrintf("[OK] USB Hid\n     Keyboard\n");
     cliAdd("usbhid", cliCmd);
   }
 
@@ -877,6 +878,25 @@ static uint8_t *USBD_HID_GetDeviceQualifierDesc(uint16_t *length)
 #endif /* USE_USBD_COMPOSITE  */
 
 
+bool usbHidUpdateWakeUp(USBD_HandleTypeDef *pdev)
+{
+  PCD_HandleTypeDef *hpcd = (PCD_HandleTypeDef *)pdev->pData;
+  bool ret = false;
+  
+  if (pdev->dev_state == USBD_STATE_SUSPENDED)
+  {
+    logPrintf("[  ] USB WakeUp\n");
+
+    __HAL_PCD_UNGATE_PHYCLOCK((hpcd));
+    HAL_PCD_ActivateRemoteWakeup(hpcd);
+    delay(10);
+    HAL_PCD_DeActivateRemoteWakeup(hpcd);
+    ret = true;
+  }
+
+  return ret;
+}
+
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
 {
   via_hid_receive_func = func;
@@ -890,8 +910,17 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   if (length > HID_KEYBOARD_REPORT_SIZE)
     return false;
 
-  memcpy(report_info.buf, p_data, length);
-  qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+  if (!USBD_is_suspended())
+  {
+    memcpy(report_info.buf, p_data, length);
+    qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+  }
+  else
+  {
+    usbHidUpdateWakeUp(&USBD_Device);
+  }
+
+  
   return true;
 }
 

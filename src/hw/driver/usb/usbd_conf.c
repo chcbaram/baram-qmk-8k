@@ -53,6 +53,7 @@
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 void Error_Handler(void);
 static bool is_connected = false;
+static bool is_suspended = false;
 
 /* External functions --------------------------------------------------------*/
 
@@ -76,6 +77,10 @@ bool USBD_is_connected(void)
   return is_connected;
 }
 
+bool USBD_is_suspended(void)
+{
+  return is_suspended;
+}
 
 /*******************************************************************************
                        LL Driver Callbacks (PCD -> USB Device Library)
@@ -261,7 +266,8 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
   }
 
   is_connected = false;
-
+  is_suspended = true;
+  logPrintf("[  ] USB Suspend\n");
   /* USER CODE END 2 */
 }
 
@@ -279,6 +285,8 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 {
   /* USER CODE BEGIN 3 */
 
+  is_suspended = false;
+  logPrintf("[  ] USB Resume\n");
   /* USER CODE END 3 */
   USBD_LL_Resume((USBD_HandleTypeDef*)hpcd->pData);
 }

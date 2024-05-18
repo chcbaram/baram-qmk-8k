@@ -63,6 +63,7 @@ bool usbBegin(UsbMode_t usb_mode);
 void usbDeInit(void);
 bool usbIsOpen(void);
 bool usbIsConnect(void);
+bool usbIsSuspended(void);
 
 UsbMode_t usbGetMode(void);
 UsbType_t usbGetType(void);

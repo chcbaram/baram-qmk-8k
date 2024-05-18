@@ -773,6 +773,7 @@ static void  USBD_CMPSIT_AddConfDesc(uint32_t Conf, __IO uint32_t *pSze)
   ptr->iConfiguration = USBD_CONFIG_STR_DESC_IDX;
 
 #if (USBD_SELF_POWERED == 1U)
+  // Added Remote WakeUp 0xC0 -> 0xE0
   ptr->bmAttributes = 0xC0U;   /* bmAttributes: Self Powered according to user configuration */
 #else
   ptr->bmAttributes = 0x80U;   /* bmAttributes: Bus Powered according to user configuration */
