@@ -86,14 +86,24 @@ void host_keyboard_send(report_keyboard_t *report)
 
   usbHidSendReport((uint8_t *)report, sizeof(report_keyboard_t));
 
-  // logPrintf("report : 0x%02X, %02X %02X %02X %02X %02X %02X \n",
-  //           report->mods,
-  //           report->keys[0],
-  //           report->keys[1],
-  //           report->keys[2],
-  //           report->keys[3],
-  //           report->keys[4],
-  //           report->keys[5]);
+  #if 0
+  static uint32_t pre_time = 0;
+  static uint32_t exe_time = 0;
+
+  exe_time = micros() - pre_time;
+  pre_time = micros();
+
+  cliPrintf("report : 0x%02X, %02X %02X %02X %02X %02X %02X %03d.%03d ms\n",
+            report->mods,
+            report->keys[0],
+            report->keys[1],
+            report->keys[2],
+            report->keys[3],
+            report->keys[4],
+            report->keys[5],
+            exe_time/1000,
+            exe_time%1000);
+  #endif
 
   if (!driver) return;
 #ifdef KEYBOARD_SHARED_EP
