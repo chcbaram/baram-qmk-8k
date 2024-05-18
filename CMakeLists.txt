@@ -154,8 +154,15 @@ add_custom_command(TARGET ${EXECUTABLE}
   COMMENT "Invoking: Make Binary"
   )  
 
-# add_custom_command(TARGET ${EXECUTABLE} 
-#   POST_BUILD
-#   COMMAND ../tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${PROJECT_NAME}.uf2
-#   COMMENT "Invoking: Make UF2"
-#   )    
+file(READ "${QMK_KEYBOARD_PATH}/config.h" config_in)
+string(REPLACE "\"" "" config_out ${config_in})
+string(REGEX MATCH "KBD_NAME * ([-A-Za-z0-9]*)" _ ${config_out})
+set(KBD_NAME ${CMAKE_MATCH_1})
+
+message("${KBD_NAME}")
+  
+add_custom_command(TARGET ${EXECUTABLE} 
+  POST_BUILD
+  COMMAND ../tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${KBD_NAME}.uf2
+  COMMENT "Invoking: Make UF2"
+  )    
