@@ -105,7 +105,7 @@ static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 static qbuffer_t     report_q;
 static report_info_t report_buf[128];
-static uint8_t       hid_buf[HID_KEYBOARD_REPORT_SIZE] = {0,};
+__ALIGN_BEGIN  static uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
 
 
 USBD_ClassTypeDef USBD_HID =
@@ -752,6 +752,8 @@ static uint32_t data_in_rate = 0;
 static uint32_t rate_time_pre = 0;
 static uint32_t rate_time_us  = 0;
 static uint32_t rate_time_min = 0; 
+static uint32_t rate_time_avg = 0; 
+static uint32_t rate_time_sum = 0; 
 static uint32_t rate_time_max = 0; 
 static uint32_t rate_time_min_check = 0xFFFF; 
 static uint32_t rate_time_max_check = 0; 
@@ -799,6 +801,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   
   rate_time_cur = micros();
   rate_time_us  = rate_time_cur - rate_time_pre;
+  rate_time_sum += rate_time_us; 
   if (rate_time_min_check > rate_time_us)
   {
     rate_time_min_check = rate_time_us;
@@ -936,10 +939,12 @@ void usbHidMeasurePollRate(void)
     data_in_rate = data_in_cnt;
     rate_time_min = rate_time_min_check; 
     rate_time_max = rate_time_max_check;     
+    rate_time_avg = rate_time_sum / (data_in_cnt + 1);
     data_in_cnt = 0;
 
     rate_time_min_check = 0xFFFF; 
     rate_time_max_check = 0;     
+    rate_time_sum = 0;
   }  
   cnt++;  
 }
@@ -974,8 +979,9 @@ void cliCmd(cli_args_t *args)
       if (millis()-pre_time >= 1000)
       {
         pre_time = millis();
-        cliPrintf("hid rate %d Hz, max %4d us, min %d us, %d\n", 
+        cliPrintf("hid rate %d Hz, avg %4d us, max %4d us, min %d us, %d\n", 
           data_in_rate,
+          rate_time_avg,
           rate_time_max,
           rate_time_min,
           rate_time_sof); 

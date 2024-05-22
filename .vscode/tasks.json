@@ -5,15 +5,18 @@
       "label": "build-configure",
       "type": "shell",
       "windows":{
-        "command": "cmake -S . -B build -G 'MinGW Makefiles'" ,
+        "command": "cmake -S . -B build -G 'MinGW Makefiles' -DKEYBOARD_PATH='${config:keyboard_path}'" ,
       },
-      "command": "cmake -S . -B build",
+      "command": "cmake -S . -B build -DKEYBOARD_PATH='${config:keyboard_path}'",
       "problemMatcher": []
     },  
     {
       "label": "build-build",
       "type": "shell",
-      "command": "cmake -S . -B build -DKEYBOARD_PATH='${config:keyboard_path}'; cmake --build build -j10",
+      "windows":{
+        "command": "cmake -S . -B build -G 'MinGW Makefiles' -DKEYBOARD_PATH='${config:keyboard_path}'; cmake --build build -j10",
+      },
+      "command": "cmake -S . -B build -DKEYBOARD_PATH='${config:keyboard_path}'; cmake --build build -j10",    
       "problemMatcher": [],
       "group": {
         "kind": "build",
