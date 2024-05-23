@@ -68,10 +68,16 @@ uint8_t matrix_scan(void)
   }
 
   bool changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
-  if (changed) memcpy(raw_matrix, curr_matrix, sizeof(curr_matrix));
+  if (changed)
+  {
+    memcpy(raw_matrix, curr_matrix, sizeof(curr_matrix));
+  }
 
   changed = debounce(raw_matrix, matrix, MATRIX_ROWS, changed);
-
+  if (changed)
+  {
+    usbHidSetTimeLog(0, micros());
+  }
   matrix_info();
 
   return (uint8_t)changed;

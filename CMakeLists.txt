@@ -163,6 +163,6 @@ message("${KBD_NAME}")
   
 add_custom_command(TARGET ${EXECUTABLE} 
   POST_BUILD
-  COMMAND python ARGS ${CMAKE_CURRENT_SOURCE_DIR}/tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${KBD_NAME}.uf2
+  COMMAND ${PYTHON_EXECUTABLE} ARGS ${CMAKE_CURRENT_SOURCE_DIR}/tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${KBD_NAME}.uf2
   COMMENT "Invoking: Make UF2"
   )    

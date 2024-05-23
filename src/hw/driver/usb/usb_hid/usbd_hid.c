@@ -61,8 +61,8 @@
 #endif
 
 
-#define HID_KEYBOARD_REPORT_SIZE   (HW_KEYS_PRESS_MAX + 2U)
-
+#define HID_KEYBOARD_REPORT_SIZE (HW_KEYS_PRESS_MAX + 2U)
+#define KEY_TIME_LOG_MAX         32
 
 
 static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -762,8 +762,11 @@ static bool     key_time_req = false;
 static uint32_t key_time_pre;
 static uint32_t key_time_end;
 static uint32_t key_time_idx = 0;
-static uint32_t key_time_log[10];
-
+static uint32_t key_time_cnt = 0;
+static uint32_t key_time_log[KEY_TIME_LOG_MAX];
+static bool     key_time_raw_req = false;
+static uint32_t key_time_raw_pre;
+static uint32_t key_time_raw_log[KEY_TIME_LOG_MAX];
 
 /**
   * @brief  USBD_HID_DataIn
@@ -926,7 +929,7 @@ void usbHidMeasureRateTime(void)
     {
       rate_time_max_check = rate_time_us;
     }
-    // rate_time_pre = rate_time_cur;
+
 
     uint32_t rate_time_idx;
 
@@ -945,7 +948,22 @@ void usbHidMeasureRateTime(void)
     key_time_req = false;
 
     key_time_log[key_time_idx] = key_time_end;
-    key_time_idx = (key_time_idx + 1) % 10;
+
+    if (key_time_raw_req)
+    {
+      key_time_raw_req = false;
+      key_time_raw_log[key_time_idx] = micros()-key_time_raw_pre;
+    }
+    else
+    {
+      key_time_raw_log[key_time_idx] = key_time_end;
+    }
+
+    key_time_idx = (key_time_idx + 1) % KEY_TIME_LOG_MAX;
+    if (key_time_cnt < KEY_TIME_LOG_MAX)
+    {
+      key_time_cnt++;
+    }
   }  
 }
 
@@ -954,6 +972,13 @@ bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
   p_info->freq_hz = data_in_rate;
   p_info->time_max = rate_time_max;
   p_info->time_min = rate_time_min;
+  return true;
+}
+
+bool usbHidSetTimeLog(uint16_t index, uint32_t time_us)
+{
+  key_time_raw_pre = time_us;
+  key_time_raw_req = true;
   return true;
 }
 
@@ -1128,11 +1153,64 @@ void cliCmd(cli_args_t *args)
     ret = true;
   }
 
+  if (args->argc == 2 && args->isStr(0, "log") && args->isStr(1, "clear"))
+  {
+    key_time_idx = 0;
+    key_time_cnt = 0;
+    ret = true;
+  }
+
+  if (args->argc == 1 && args->isStr(0, "log") == true)
+  {
+    uint16_t index;
+    uint16_t time_max[2] = {0, 0};
+    uint16_t time_min[2] = {0xFFFF, 0xFFFF};
+    uint16_t time_sum[2] = {0, 0};
+
+
+    for (int i = 0; i < key_time_cnt; i++)
+    {
+      index = (key_time_idx + i) % KEY_TIME_LOG_MAX;
+
+      cliPrintf("%2d: %3d us, raw : %3d us\n",
+                i,
+                key_time_log[index],
+                key_time_raw_log[index]);
+
+      for (int j=0; j<2; j++)
+      {
+        uint16_t data;
+
+        if (j == 0)
+          data = key_time_log[index]; 
+        else
+          data = key_time_raw_log[index]; 
+
+        time_sum[j] += data;
+        if (data > time_max[j])
+          time_max[j] = data;
+        if (data < time_min[j])
+          time_min[j] = data;
+      }
+    }
+
+    cliPrintf("\n");
+    if (key_time_cnt > 0)
+    {
+      cliPrintf("avg : %3d us, %3d us\n", time_sum[0]/key_time_cnt, time_sum[1]/key_time_cnt);
+      cliPrintf("max : %3d us, %3d us\n", time_max[0], time_max[1]);
+      cliPrintf("min : %3d us, %3d us\n", time_min[0], time_min[1]);
+    }
+    ret = true;
+  }
+
   if (ret == false)
   {
     cliPrintf("usbhid info\n");
     cliPrintf("usbhid rate\n");
     cliPrintf("usbhid rate his\n");
+    cliPrintf("usbhid log\n");
+    cliPrintf("usbhid log clear\n");
   }
 }
 #endif
