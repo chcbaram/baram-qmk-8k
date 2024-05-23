@@ -139,11 +139,6 @@ extern USBD_ClassTypeDef USBD_HID;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
-#ifdef USE_USBD_COMPOSITE
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len, uint8_t ClassId);
-#else
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len);
-#endif /* USE_USBD_COMPOSITE */
 uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 

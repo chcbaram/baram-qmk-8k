@@ -87,7 +87,9 @@ static uint8_t *USBD_HID_GetUsrStrDescriptor(struct _USBD_HandleTypeDef *pdev, u
 
 static void cliCmd(cli_args_t *args);
 static void usbHidMeasurePollRate(void);
+static void usbHidMeasureRateTime(void);
 static bool usbHidUpdateWakeUp(USBD_HandleTypeDef *pdev);
+static void usbHidInitTimer(void);
 
 
 typedef struct
@@ -327,11 +329,10 @@ __ALIGN_BEGIN static uint8_t HID_VIA_ReportDesc[HID_KEYBOARD_VIA_REPORT_DESC_SIZ
   0xC0              // End Collection
 };
 
+static USBD_HID_HandleTypeDef *p_hhid = NULL;
 static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
 extern USBD_HandleTypeDef USBD_Device;
-
-
-
+static TIM_HandleTypeDef htim2;
 
 
 /**
@@ -354,6 +355,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     pdev->pClassDataCmsit[pdev->classId] = NULL;
     return (uint8_t)USBD_EMEM;
   }
+
+  p_hhid = hhid;
 
   pdev->pClassDataCmsit[pdev->classId] = (void *)hhid;
   pdev->pClassData = pdev->pClassDataCmsit[pdev->classId];
@@ -395,6 +398,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     logPrintf("[OK] USB Hid\n     Keyboard\n");
     cliAdd("usbhid", cliCmd);
+
+    usbHidInitTimer();
   }
 
   return (uint8_t)USBD_OK;
@@ -611,41 +616,30 @@ uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
 /**
   * @brief  USBD_HID_SendReport
   *         Send HID Report
-  * @param  pdev: device instance
   * @param  buff: pointer to report
-  * @param  ClassId: The Class ID
   * @retval status
   */
-#ifdef USE_USBD_COMPOSITE
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len, uint8_t ClassId)
+bool USBD_HID_SendReport(uint8_t *report, uint16_t len)
 {
-  USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[ClassId];
-#else
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev, uint8_t *report, uint16_t len)
-{
-  USBD_HID_HandleTypeDef *hhid = (USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-#endif /* USE_USBD_COMPOSITE */
+  USBD_HandleTypeDef *pdev = &USBD_Device;
+  bool ret = false;
 
-  if (hhid == NULL)
+  if (p_hhid == NULL)
   {
-    return (uint8_t)USBD_FAIL;
+    return false;
   }
-
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  HIDInEpAdd = USBD_CoreGetEPAdd(pdev, USBD_EP_IN, USBD_EP_TYPE_INTR, ClassId);
-#endif /* USE_USBD_COMPOSITE */
 
   if (pdev->dev_state == USBD_STATE_CONFIGURED)
   {
-    if (hhid->state == USBD_HID_IDLE)
+    if (p_hhid->state == USBD_HID_IDLE)
     {
-      hhid->state = USBD_HID_BUSY;
-      (void)USBD_LL_Transmit(pdev, HIDInEpAdd, report, len);
+      ret = true;
+      p_hhid->state = USBD_HID_BUSY;
+      (void)USBD_LL_Transmit(pdev, HID_EPIN_ADDR, report, len);
     }
   }
 
-  return (uint8_t)USBD_OK;
+  return ret;
 }
 
 /**
@@ -749,6 +743,7 @@ static uint8_t *USBD_HID_GetOtherSpeedCfgDesc(uint16_t *length)
 static uint32_t data_in_cnt = 0;
 static uint32_t data_in_rate = 0;
 
+static bool     rate_time_req = false;
 static uint32_t rate_time_pre = 0;
 static uint32_t rate_time_us  = 0;
 static uint32_t rate_time_min = 0; 
@@ -762,6 +757,13 @@ static uint32_t rate_time_sof_pre = 0;
 static uint32_t rate_time_sof = 0; 
 
 static uint16_t rate_his_buf[100];
+
+static bool     key_time_req = false;
+static uint32_t key_time_pre;
+static uint32_t key_time_end;
+static uint32_t key_time_idx = 0;
+static uint32_t key_time_log[10];
+
 
 /**
   * @brief  USBD_HID_DataIn
@@ -782,43 +784,10 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
     return (uint8_t)USBD_OK;
   }
   
-
-  if (qbufferAvailable(&report_q) > 0)
-  {   
-    qbufferRead(&report_q, (uint8_t *)hid_buf, 1);  
-  }
-
-  #ifdef USE_USBD_COMPOSITE
-  USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);  
-  #else
-  USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);  
-  #endif
   data_in_cnt++;
 
-  rate_time_sof = micros() - rate_time_sof_pre;
 
-  uint32_t rate_time_cur;
-  
-  rate_time_cur = micros();
-  rate_time_us  = rate_time_cur - rate_time_pre;
-  rate_time_sum += rate_time_us; 
-  if (rate_time_min_check > rate_time_us)
-  {
-    rate_time_min_check = rate_time_us;
-  }
-  if (rate_time_max_check < rate_time_us)
-  {
-    rate_time_max_check = rate_time_us;
-  }
-  rate_time_pre = rate_time_cur;
-
-  uint32_t rate_time_idx;
-
-  rate_time_idx = constrain(rate_time_us/10, 0, 99);
-  if (rate_his_buf[rate_time_idx] < 0xFFFF)
-  {
-    rate_his_buf[rate_time_idx]++;
-  }
+  usbHidMeasureRateTime();
 
   return (uint8_t)USBD_OK;
 }
@@ -850,17 +819,6 @@ static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 uint8_t USBD_HID_SOF(USBD_HandleTypeDef *pdev)
 {
   usbHidMeasurePollRate();
-
-  if (qbufferAvailable(&report_q) > 0)
-  {   
-    qbufferRead(&report_q, (uint8_t *)hid_buf, 1);  
-
-    #ifdef USE_USBD_COMPOSITE
-    USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE, pdev->classId);  
-    #else
-    USBD_HID_SendReport(pdev, (uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);  
-    #endif
-  }
 
   return (uint8_t)USBD_OK;
 }
@@ -915,6 +873,7 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
 
   if (!USBD_is_suspended())
   {
+    key_time_pre = micros();
     memcpy(report_info.buf, p_data, length);
     qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
   }
@@ -922,7 +881,6 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   {
     usbHidUpdateWakeUp(&USBD_Device);
   }
-
   
   return true;
 }
@@ -949,12 +907,160 @@ void usbHidMeasurePollRate(void)
   cnt++;  
 }
 
+void usbHidMeasureRateTime(void)
+{
+  rate_time_sof = micros() - rate_time_sof_pre;
+
+  if (rate_time_req)
+  {
+    uint32_t rate_time_cur;
+    
+    rate_time_cur = micros();
+    rate_time_us  = rate_time_cur - rate_time_pre;
+    rate_time_sum += rate_time_us; 
+    if (rate_time_min_check > rate_time_us)
+    {
+      rate_time_min_check = rate_time_us;
+    }
+    if (rate_time_max_check < rate_time_us)
+    {
+      rate_time_max_check = rate_time_us;
+    }
+    // rate_time_pre = rate_time_cur;
+
+    uint32_t rate_time_idx;
+
+    rate_time_idx = constrain(rate_time_us/10, 0, 99);
+    if (rate_his_buf[rate_time_idx] < 0xFFFF)
+    {
+      rate_his_buf[rate_time_idx]++;
+    }  
+
+    rate_time_req = false;
+  }
+
+  if (key_time_req)
+  {
+    key_time_end = micros()-key_time_pre;
+    key_time_req = false;
+
+    key_time_log[key_time_idx] = key_time_end;
+    key_time_idx = (key_time_idx + 1) % 10;
+  }  
+}
+
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
 {
   p_info->freq_hz = data_in_rate;
   p_info->time_max = rate_time_max;
   p_info->time_min = rate_time_min;
   return true;
+}
+
+void usbHidInitTimer(void)
+{
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 159;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_COMBINED_RESETTRIGGER;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR11;
+  if (HAL_TIM_SlaveConfigSynchro(&htim2, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 115;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  HAL_TIM_OC_Start_IT(&htim2, TIM_CHANNEL_1);
+}
+
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
+{
+
+  if(tim_baseHandle->Instance==TIM2)
+  {
+    /* TIM2 clock enable */
+    __HAL_RCC_TIM2_CLK_ENABLE();
+
+    /* TIM2 interrupt Init */
+    HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  }
+}
+
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
+{
+
+  if(tim_baseHandle->Instance==TIM2)
+  {
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM2_CLK_DISABLE();
+
+    /* TIM2 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(TIM2_IRQn);
+  }
+}
+
+void TIM2_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim2);
+}
+
+volatile int timer_cnt = 0;
+volatile uint32_t timer_end = 0;
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+  timer_cnt++;
+  timer_end = micros()-rate_time_sof_pre;
+
+
+  if (qbufferAvailable(&report_q) > 0)
+  {
+    if (p_hhid->state == USBD_HID_IDLE)
+    {
+      qbufferRead(&report_q, (uint8_t *)hid_buf, 1);
+      key_time_req = true;
+
+      USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);
+      rate_time_req = true;
+      rate_time_pre = micros();
+    }
+  }
+  return;
 }
 
 #ifdef _USE_HW_CLI
@@ -970,21 +1076,45 @@ void cliCmd(cli_args_t *args)
   if (args->argc >= 1 && args->isStr(0, "rate") == true)
   {
     uint32_t pre_time;
+    uint32_t pre_time_key;
+    uint32_t key_send_cnt = 0;
 
     memset(rate_his_buf, 0, sizeof(rate_his_buf));
 
     pre_time = millis();
+    pre_time_key = millis();
     while(cliKeepLoop())
     {
+      if (millis()-pre_time_key >= 2 && key_send_cnt < 50)
+      {
+        uint8_t buf[HID_KEYBOARD_REPORT_SIZE];
+
+        memset(buf, 0, HID_KEYBOARD_REPORT_SIZE);
+
+        pre_time_key = millis();    
+        usbHidSendReport(buf, HID_KEYBOARD_REPORT_SIZE);      
+        key_send_cnt++;
+      }
+
+      
       if (millis()-pre_time >= 1000)
       {
         pre_time = millis();
-        cliPrintf("hid rate %d Hz, avg %4d us, max %4d us, min %d us, %d\n", 
+        cliPrintf("hid rate %d Hz, avg %4d us, max %4d us, min %d us, %d, %d\n", 
           data_in_rate,
           rate_time_avg,
           rate_time_max,
           rate_time_min,
-          rate_time_sof); 
+          rate_time_sof,
+          timer_end
+          ); 
+        
+        for (int i=0; i<10; i++)
+        {
+          cliPrintf("%d us\n",key_time_log[i]);
+        }
+        timer_cnt = 0;
+        key_send_cnt = 0;
       }
     }
 
