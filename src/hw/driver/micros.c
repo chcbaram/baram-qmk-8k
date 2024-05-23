@@ -14,11 +14,11 @@ bool microsInit(void)
 {
   uint32_t uwPrescalerValue = 0;
 
-  __HAL_RCC_TIM2_CLK_ENABLE();
+  __HAL_RCC_TIM3_CLK_ENABLE();
 
 
   /* Set TIMx instance */
-  TimHandle.Instance = TIM2;
+  TimHandle.Instance = TIM3;
 
 
   // Compute the prescaler value to have TIMx counter clock equal to 1Mh
