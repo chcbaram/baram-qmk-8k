@@ -7,7 +7,7 @@
 #include QMK_KEYMAP_CONFIG_H
 
 
-#define _DEF_FIRMWATRE_VERSION    "V240523R1"
+#define _DEF_FIRMWATRE_VERSION    "V240524R5"
 #define _DEF_BOARD_NAME           "BARAM-QMK-8K-FW"
 
 
@@ -50,7 +50,7 @@
 
 #define _USE_HW_KEYS
 #define      HW_KEYS_MAX_CH         HW_BUTTON_MAX_CH
-#define      HW_KEYS_PRESS_MAX      8
+#define      HW_KEYS_PRESS_MAX      6
 
 #define _USE_HW_SPI
 #define      HW_SPI_MAX_CH          1
