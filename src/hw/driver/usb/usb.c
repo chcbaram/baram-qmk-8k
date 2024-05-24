@@ -29,15 +29,17 @@ extern USBD_DescriptorsTypeDef CMP_Desc;
 
 static USBD_DescriptorsTypeDef *p_desc = NULL;
 
+#if HW_USB_CMP == 1
 static uint8_t hid_ep_tbl[] = {
   HID_EPIN_ADDR, 
   HID_VIA_EP_IN, 
   HID_VIA_EP_OUT};
+
 static uint8_t cdc_ep_tbl[] = {
   CDC_IN_EP, 
   CDC_OUT_EP, 
   CDC_CMD_EP};
-
+#endif
 
 #ifdef _USE_HW_CLI
 static void cliCmd(cli_args_t *args);

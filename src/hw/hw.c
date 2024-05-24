@@ -45,7 +45,11 @@ bool hwInit(void)
   
   cdcInit();
   usbInit();
+  #if HW_USB_CMP
   usbBegin(USB_CMP_MODE);
+  #else
+  usbBegin(USB_HID_MODE);
+  #endif
   loaderInit();
   
   return true;
