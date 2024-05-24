@@ -14,9 +14,11 @@
 static matrix_row_t raw_matrix[MATRIX_ROWS]; // raw values
 static matrix_row_t matrix[MATRIX_ROWS];     // debounced values
 static bool         is_info_enable = false;
+static uint32_t     key_scan_time  = 0;
 
 static void cliCmd(cli_args_t *args);
 static void matrix_info(void);
+
 
 
 
@@ -33,19 +35,10 @@ void matrix_init(void)
 
 void matrix_print(void)
 {
-  // print_matrix_header();
-
-  // for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
-  //     print_hex8(row);
-  //     print(": ");
-  //     print_matrix_row(row);
-  //     print("\n");
-  // }
 }
 
 bool matrix_can_read(void) 
 {
-  keysUpdate();
   return !keysIsBusy();
 }
 
@@ -57,15 +50,20 @@ matrix_row_t matrix_get_row(uint8_t row)
 uint8_t matrix_scan(void)
 {
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
+  uint32_t pre_time;
 
+  pre_time = micros();
 
-  for (int rows=0; rows<MATRIX_ROWS; rows++)
+  keysUpdate();
+
+  for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
   {
-    for (int cols=0; cols<MATRIX_COLS; cols++)
+    for (uint32_t cols=0; cols<MATRIX_COLS; cols++)
     {
       curr_matrix[rows] |= (keysGetPressed(rows, cols)<<cols);
     }
   }
+  key_scan_time = micros() - pre_time;
 
   bool changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
   if (changed)
@@ -76,7 +74,7 @@ uint8_t matrix_scan(void)
   changed = debounce(raw_matrix, matrix, MATRIX_ROWS, changed);
   if (changed)
   {
-    usbHidSetTimeLog(0, micros());
+    usbHidSetTimeLog(0, pre_time);
   }
   matrix_info();
 
@@ -102,6 +100,7 @@ void matrix_info(void)
                 hid_info.freq_hz,
                 hid_info.time_max,
                 hid_info.time_min);
+      logPrintf("Scan Tiem : %d us\n", key_scan_time);
     }
   }
 #endif

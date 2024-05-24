@@ -28,7 +28,7 @@ static uint8_t  pssi_buf[PSSI_BUX_MAX];
 static uint32_t pssi_dma_pre_time = 0;
 static uint32_t pssi_dma_exe_time = 0;
 static bool     pssi_dma_req      = false;
-
+static uint32_t pssi_dma_cnt      = 0;
 static uint16_t spi_buf = (uint16_t)(~(1 << 15));
 
 
@@ -48,12 +48,11 @@ bool pssiInit(void)
   {
     Error_Handler();
   }
+
   memset(pssi_buf, 0xFF, sizeof(pssi_buf));
 
-  {
-    uint16_t spi_data = 0xFFFF;
-    spiDmaTxStart(spi_ch, (uint8_t *)&spi_data, 1);
-  }
+
+  pssiSpiStart();
   delay(2);
 
   logPrintf("[%s] pssiInit()\n", ret ? "OK":"NG");
@@ -66,6 +65,7 @@ bool pssiInit(void)
 
 bool pssiIsBusy(void)
 {
+  is_busy = pssi_dma_req;
   return is_busy; 
 }
 
@@ -80,7 +80,6 @@ bool pssiUpdate(void)
   {
     pssi_dma_req = true;
   }
-  pssiSpiStart();
   
   return is_busy;
 }
@@ -123,6 +122,7 @@ void GPDMA1_Channel2_IRQHandler(void)
   HAL_DMA_IRQHandler(&handle_GPDMA1_Channel2);
 
   pssi_dma_req = false;
+  pssi_dma_cnt++;
   pssi_dma_exe_time = micros() - pssi_dma_pre_time;
 }
 
@@ -135,6 +135,8 @@ void HAL_PSSI_MspInit(PSSI_HandleTypeDef* pssiHandle)
 {
   DMA_NodeConfTypeDef NodeConfig= {0};
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  DMA_TriggerConfTypeDef TriggerConfig = {0};
+
   if(pssiHandle->Instance==PSSI)
   {
   /* USER CODE BEGIN PSSI_MspInit 0 */
@@ -245,12 +247,20 @@ void HAL_PSSI_MspInit(PSSI_HandleTypeDef* pssiHandle)
 
     __HAL_LINKDMA(pssiHandle, hdmarx, handle_GPDMA1_Channel2);
 
-    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel2, DMA_CHANNEL_NPRIV) != HAL_OK)
+    TriggerConfig.TriggerMode = DMA_TRIGM_BLOCK_TRANSFER;
+    TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_RISING;
+    TriggerConfig.TriggerSelection = GPDMA1_TRIGGER_GPDMA1_CH1_TCF;
+    if (HAL_DMAEx_ConfigTrigger(&handle_GPDMA1_Channel2, &TriggerConfig) != HAL_OK)
     {
       Error_Handler();
     }
 
-    HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 5, 0);
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel2, DMA_CHANNEL_NPRIV) != HAL_OK)
+    {
+      Error_Handler();
+    }
+    
+    HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel2_IRQn);    
 
     // HAL_NVIC_SetPriority(DCMI_PSSI_IRQn, 5, 0);
@@ -295,6 +305,9 @@ void cliCmd(cli_args_t *args)
 
   if (args->argc == 1 && args->isStr(0, "info"))
   {
+    pssi_dma_cnt = 0;
+    delay(1000);
+    cliPrintf("pssi_cnt : %d\n", pssi_dma_cnt);
     ret = true;
   }
 

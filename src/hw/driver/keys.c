@@ -43,10 +43,7 @@ bool keysUpdate(void)
 
   ret = pssiUpdate();
 
-  if (!pssiIsBusy())
-  {
-    pssiReadBuf(cols_buf, MATRIX_COLS);
-  }
+  pssiReadBuf(cols_buf, MATRIX_COLS);
   return ret;
 }
 
@@ -56,7 +53,6 @@ bool keysGetPressed(uint16_t row, uint16_t col)
   uint8_t row_bit;
 
   row_bit = ~cols_buf[col];
-
 
   if (row_bit & (1<<row))
   {

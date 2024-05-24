@@ -1215,7 +1215,10 @@ void cliCmd(cli_args_t *args)
 
     for (int i = 0; i < key_time_cnt; i++)
     {
-      index = (key_time_idx + i) % KEY_TIME_LOG_MAX;
+      if (key_time_cnt == KEY_TIME_LOG_MAX)
+        index = (key_time_idx + i) % KEY_TIME_LOG_MAX;
+      else
+        index = i;
 
       cliPrintf("%2d: %3d us, raw : %3d us\n",
                 i,
