@@ -147,7 +147,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   USB_DESC_TYPE_CONFIGURATION,                        /* bDescriptorType: Configuration */
   USB_HID_CONFIG_DESC_SIZ,                            /* wTotalLength: Bytes returned */
   0x00,
-  0x01,                                               /* bNumInterfaces: 1 interface */
+  0x02,                                               /* bNumInterfaces: 2 interface */
   0x01,                                               /* bConfigurationValue: Configuration value */
   0x00,                                               /* iConfiguration: Index of string descriptor
                                                          describing the configuration */
@@ -191,6 +191,51 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,
   HID_HS_BINTERVAL,                                   /* bInterval: Polling Interval */
   /* 34 */
+
+
+  /*---------------------------------------------------------------------------*/
+  /* VIA interface descriptor */
+  0x09,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_INTERFACE,                            /* bDescriptorType: */
+  0x01,                                               /* bInterfaceNumber: Number of Interface */
+  0x00,                                               /* bAlternateSetting: Alternate setting */
+  0x02,                                               /* bNumEndpoints: Two endpoints used */
+  0x03,                                               /* bInterfaceClass: HID */
+  0x00,                                               /* bInterfaceSubClass : 1=BOOT, 0=no boot */
+  0x00,                                               /* nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse */
+  0x00,                                               /* iInterface */
+
+  /******************** Descriptor of VIA ********************/
+  /* 43 */
+  0x09,                                               /* bLength: HID Descriptor size */
+  HID_DESCRIPTOR_TYPE,                                /* bDescriptorType: HID */
+  0x11,                                               /* bcdHID: HID Class Spec release number */
+  0x01,
+  0x00,                                               /* bCountryCode: Hardware target country */
+  0x01,                                               /* bNumDescriptors: Number of HID class descriptors to follow */
+  0x22,                                               /* bDescriptorType */
+  HID_KEYBOARD_VIA_REPORT_DESC_SIZE,                  /* wItemLength: Total length of Report descriptor */
+  0x00,
+
+  /******************** Descriptor of VIA endpoint ********************/
+  /* 52 */
+  0x07,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
+  HID_VIA_EP_IN,                                      /* bEndpointAddress: Endpoint Address (IN) */
+  USBD_EP_TYPE_INTR,                                  /* bmAttributes: Interrupt endpoint */
+  HID_VIA_EP_SIZE,                                    /* wMaxPacketSize: */
+  0x00,
+  4,                                                  /* bInterval: Polling Interval */
+
+  /* 59 */
+  0x07,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
+  HID_VIA_EP_OUT,                                     /* bEndpointAddress: Endpoint Address (OUT) */
+  USBD_EP_TYPE_INTR,                                  /* bmAttributes: Interrupt endpoint */
+  HID_VIA_EP_SIZE,                                    /* wMaxPacketSize: */
+  0x00,
+  4,                                                  /* bInterval: Polling Interval */
+  /* 66 */
 };
 #endif /* USE_USBD_COMPOSITE  */
 
