@@ -42,9 +42,14 @@ bool keysUpdate(void)
   bool ret;
 
   ret = pssiUpdate();
-
   pssiReadBuf(cols_buf, MATRIX_COLS);
   return ret;
+}
+
+bool keysReadBuf(uint8_t *p_data, uint32_t length)
+{
+  pssiReadBuf(p_data, length);
+  return true;
 }
 
 bool keysGetPressed(uint16_t row, uint16_t col)

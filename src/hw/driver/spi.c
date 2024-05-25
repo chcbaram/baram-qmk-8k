@@ -74,7 +74,7 @@ bool spiBegin(uint8_t ch)
       p_spi->h_spi->Init.CLKPolarity      = SPI_POLARITY_LOW;
       p_spi->h_spi->Init.CLKPhase         = SPI_PHASE_1EDGE;
       p_spi->h_spi->Init.NSS              = SPI_NSS_HARD_OUTPUT;
-      p_spi->h_spi->Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_128; 
+      p_spi->h_spi->Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_128; // 128=1.25Mhz, 64:2.5Mhz 
       p_spi->h_spi->Init.FirstBit         = SPI_FIRSTBIT_MSB;
       p_spi->h_spi->Init.TIMode           = SPI_TIMODE_DISABLE;
       p_spi->h_spi->Init.CRCCalculation   = SPI_CRCCALCULATION_DISABLE;

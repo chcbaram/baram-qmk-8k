@@ -812,6 +812,7 @@ static uint32_t key_time_log[KEY_TIME_LOG_MAX];
 static bool     key_time_raw_req = false;
 static uint32_t key_time_raw_pre;
 static uint32_t key_time_raw_log[KEY_TIME_LOG_MAX];
+static uint32_t key_time_pre_log[KEY_TIME_LOG_MAX];
 
 /**
   * @brief  USBD_HID_DataIn
@@ -998,6 +999,7 @@ void usbHidMeasureRateTime(void)
     {
       key_time_raw_req = false;
       key_time_raw_log[key_time_idx] = micros()-key_time_raw_pre;
+      key_time_pre_log[key_time_idx] = key_time_pre-key_time_raw_pre;
     }
     else
     {
@@ -1066,7 +1068,7 @@ void usbHidInitTimer(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 115;
+  sConfigOC.Pulse = 120;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -1208,9 +1210,9 @@ void cliCmd(cli_args_t *args)
   if (args->argc == 1 && args->isStr(0, "log") == true)
   {
     uint16_t index;
-    uint16_t time_max[2] = {0, 0};
-    uint16_t time_min[2] = {0xFFFF, 0xFFFF};
-    uint16_t time_sum[2] = {0, 0};
+    uint16_t time_max[3] = {0, 0, 0};
+    uint16_t time_min[3] = {0xFFFF, 0xFFFF, 0xFFFF};
+    uint16_t time_sum[3] = {0, 0, 0};
 
 
     for (int i = 0; i < key_time_cnt; i++)
@@ -1220,19 +1222,22 @@ void cliCmd(cli_args_t *args)
       else
         index = i;
 
-      cliPrintf("%2d: %3d us, raw : %3d us\n",
+      cliPrintf("%2d: %3d us, raw : %3d us, %d\n",
                 i,
                 key_time_log[index],
-                key_time_raw_log[index]);
+                key_time_raw_log[index],
+                key_time_pre_log[index]);
 
-      for (int j=0; j<2; j++)
+      for (int j=0; j<3; j++)
       {
         uint16_t data;
 
         if (j == 0)
           data = key_time_log[index]; 
-        else
+        else if (j == 1)
           data = key_time_raw_log[index]; 
+        else
+          data = key_time_pre_log[index];          
 
         time_sum[j] += data;
         if (data > time_max[j])
@@ -1245,9 +1250,12 @@ void cliCmd(cli_args_t *args)
     cliPrintf("\n");
     if (key_time_cnt > 0)
     {
-      cliPrintf("avg : %3d us, %3d us\n", time_sum[0]/key_time_cnt, time_sum[1]/key_time_cnt);
-      cliPrintf("max : %3d us, %3d us\n", time_max[0], time_max[1]);
-      cliPrintf("min : %3d us, %3d us\n", time_min[0], time_min[1]);
+      cliPrintf("avg : %3d us, %3d us, %3d us\n",
+                time_sum[0] / key_time_cnt,
+                time_sum[1] / key_time_cnt,
+                time_sum[2] / key_time_cnt);
+      cliPrintf("max : %3d us, %3d, us %3d us\n", time_max[0], time_max[1], time_max[2]);
+      cliPrintf("min : %3d us, %3d, us %3d us\n", time_min[0], time_min[1], time_min[2]);
     }
     ret = true;
   }

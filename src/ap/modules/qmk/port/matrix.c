@@ -39,7 +39,7 @@ void matrix_print(void)
 
 bool matrix_can_read(void) 
 {
-  return !keysIsBusy();
+  return true;
 }
 
 matrix_row_t matrix_get_row(uint8_t row)
@@ -50,12 +50,32 @@ matrix_row_t matrix_get_row(uint8_t row)
 uint8_t matrix_scan(void)
 {
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
-  uint32_t pre_time;
+  uint32_t pre_time;  
+  bool changed;
+
 
   pre_time = micros();
 
-  keysUpdate();
+  #if 1
+  uint8_t curr_cols[MATRIX_COLS];
+  uint32_t row_data;
 
+  keysReadBuf(curr_cols, MATRIX_COLS);
+
+  for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
+  {
+    row_data = 0; 
+    for (uint32_t cols=0; cols<MATRIX_COLS; cols++)
+    {
+      if ((curr_cols[cols] & (1<<rows)) == 0x00)
+      {
+        row_data |= (1<<cols);
+      }
+    }
+    curr_matrix[rows] = row_data;
+  }
+  #else
+  keysUpdate();
   for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
   {
     for (uint32_t cols=0; cols<MATRIX_COLS; cols++)
@@ -63,9 +83,12 @@ uint8_t matrix_scan(void)
       curr_matrix[rows] |= (keysGetPressed(rows, cols)<<cols);
     }
   }
+  #endif
+
   key_scan_time = micros() - pre_time;
 
-  bool changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
+
+  changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
   if (changed)
   {
     memcpy(raw_matrix, curr_matrix, sizeof(curr_matrix));
