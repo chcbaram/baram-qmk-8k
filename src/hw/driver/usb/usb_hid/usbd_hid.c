@@ -441,7 +441,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
 
-    logPrintf("[OK] USB Hid\n     Keyboard\n");
+    logPrintf("[OK] USB Hid\n");
+    logPrintf("     Keyboard\n");
     cliAdd("usbhid", cliCmd);
 
     usbHidInitTimer();
@@ -923,8 +924,19 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   if (!USBD_is_suspended())
   {
     key_time_pre = micros();
-    memcpy(report_info.buf, p_data, length);
-    qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+
+    memcpy(hid_buf, p_data, length);
+    if (USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE))
+    {
+      key_time_req = true;
+      rate_time_req = true;
+      rate_time_pre = micros();    
+    }  
+    else
+    {
+      memcpy(report_info.buf, p_data, length);
+      qbufferWrite(&report_q, (uint8_t *)&report_info, 1);        
+    }    
   }
   else
   {

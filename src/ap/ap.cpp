@@ -10,9 +10,9 @@ void cliUpdate(void);
 void apInit(void)
 {  
   cliOpen(HW_UART_CH_CLI, 115200);
-  logBoot(false);
-
   qmkInit();
+  
+  logBoot(false);
 }
 
 void apMain(void)
