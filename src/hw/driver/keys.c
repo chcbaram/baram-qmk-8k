@@ -17,7 +17,7 @@ static void cliCmd(cli_args_t *args);
 #endif
 
 
-
+static EXTI_HandleTypeDef hexti_6;
 
 
 bool keysInit(void)
@@ -28,6 +28,18 @@ bool keysInit(void)
 #if CLI_USE(HW_KEYS)
   cliAdd("keys", cliCmd);
 #endif
+
+  
+  EXTI_ConfigTypeDef exticonfig;
+
+  exticonfig.Line = EXTI_LINE_6;
+  exticonfig.Mode = EXTI_MODE_INTERRUPT;
+  exticonfig.GPIOSel = EXTI_GPIOC;
+  exticonfig.Trigger = EXTI_TRIGGER_RISING_FALLING;
+  HAL_EXTI_SetConfigLine(&hexti_6,&exticonfig);
+
+  HAL_NVIC_SetPriority(EXTI6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI6_IRQn);   
 
   return true;
 }
@@ -66,6 +78,14 @@ bool keysGetPressed(uint16_t row, uint16_t col)
 
   return ret;
 }
+
+void keysUpdateEvent(void)
+{
+  logPrintf("key event\n");
+}
+
+void EXTI6_IRQHandler(void)   { HAL_EXTI_IRQHandler(&hexti_6); keysUpdateEvent(); }
+
 
 #if CLI_USE(HW_KEYS)
 void cliCmd(cli_args_t *args)

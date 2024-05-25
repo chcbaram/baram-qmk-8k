@@ -1250,12 +1250,12 @@ void cliCmd(cli_args_t *args)
     cliPrintf("\n");
     if (key_time_cnt > 0)
     {
-      cliPrintf("avg : %3d us, %3d us, %3d us\n",
+      cliPrintf("avg : %3d us %3d us %3d us\n",
                 time_sum[0] / key_time_cnt,
                 time_sum[1] / key_time_cnt,
                 time_sum[2] / key_time_cnt);
-      cliPrintf("max : %3d us, %3d, us %3d us\n", time_max[0], time_max[1], time_max[2]);
-      cliPrintf("min : %3d us, %3d, us %3d us\n", time_min[0], time_min[1], time_min[2]);
+      cliPrintf("max : %3d us %3d us %3d us\n", time_max[0], time_max[1], time_max[2]);
+      cliPrintf("min : %3d us %3d us %3d us\n", time_min[0], time_min[1], time_min[2]);
     }
     ret = true;
   }
