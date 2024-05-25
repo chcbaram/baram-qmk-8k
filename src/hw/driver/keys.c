@@ -17,7 +17,7 @@ static void cliCmd(cli_args_t *args);
 #endif
 
 
-static EXTI_HandleTypeDef hexti_6;
+
 
 
 bool keysInit(void)
@@ -28,18 +28,6 @@ bool keysInit(void)
 #if CLI_USE(HW_KEYS)
   cliAdd("keys", cliCmd);
 #endif
-
-  
-  EXTI_ConfigTypeDef exticonfig;
-
-  exticonfig.Line = EXTI_LINE_6;
-  exticonfig.Mode = EXTI_MODE_INTERRUPT;
-  exticonfig.GPIOSel = EXTI_GPIOC;
-  exticonfig.Trigger = EXTI_TRIGGER_RISING_FALLING;
-  HAL_EXTI_SetConfigLine(&hexti_6,&exticonfig);
-
-  HAL_NVIC_SetPriority(EXTI6_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI6_IRQn);   
 
   return true;
 }
@@ -84,7 +72,22 @@ void keysUpdateEvent(void)
   logPrintf("key event\n");
 }
 
-void EXTI6_IRQHandler(void)   { HAL_EXTI_IRQHandler(&hexti_6); keysUpdateEvent(); }
+void EXTI0_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);    keysUpdateEvent(); }
+void EXTI1_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);    keysUpdateEvent(); }
+void EXTI2_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);    keysUpdateEvent(); }
+void EXTI3_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);    keysUpdateEvent(); }
+void EXTI4_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);    keysUpdateEvent(); }
+void EXTI5_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);    keysUpdateEvent(); }
+void EXTI6_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);    keysUpdateEvent(); }
+void EXTI7_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);    keysUpdateEvent(); }
+void EXTI8_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);    keysUpdateEvent(); }
+void EXTI9_IRQHandler(void)   {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);    keysUpdateEvent(); }
+void EXTI10_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);   keysUpdateEvent(); }
+void EXTI11_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);   keysUpdateEvent(); }
+void EXTI12_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);   keysUpdateEvent(); }
+void EXTI13_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);   keysUpdateEvent(); }
+void EXTI14_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);   keysUpdateEvent(); }
+void EXTI15_IRQHandler(void)  {  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);   keysUpdateEvent(); }
 
 
 #if CLI_USE(HW_KEYS)
