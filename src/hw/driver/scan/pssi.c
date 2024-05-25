@@ -260,8 +260,8 @@ void HAL_PSSI_MspInit(PSSI_HandleTypeDef* pssiHandle)
       Error_Handler();
     }
     
-    HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 6, 0);
-    HAL_NVIC_EnableIRQ(GPDMA1_Channel2_IRQn);    
+    // HAL_NVIC_SetPriority(GPDMA1_Channel2_IRQn, 6, 0);
+    // HAL_NVIC_EnableIRQ(GPDMA1_Channel2_IRQn);    
 
     // HAL_NVIC_SetPriority(DCMI_PSSI_IRQn, 5, 0);
     // HAL_NVIC_EnableIRQ(DCMI_PSSI_IRQn);    
