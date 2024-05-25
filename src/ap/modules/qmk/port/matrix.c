@@ -118,12 +118,12 @@ void matrix_info(void)
 
       usbHidGetRateInfo(&hid_info);
       
-      logPrintf("Scan Rate : %d Hz\n", get_matrix_scan_rate());
+      logPrintf("Scan Rate : %d.%d KHz\n", get_matrix_scan_rate()/1000, get_matrix_scan_rate()%1000);
       logPrintf("Poll Rate : %d Hz, %d us(max), %d us(min)\n",
                 hid_info.freq_hz,
                 hid_info.time_max,
                 hid_info.time_min);
-      logPrintf("Scan Tiem : %d us\n", key_scan_time);
+      logPrintf("Scan Time : %d us\n", key_scan_time);
     }
   }
 #endif
@@ -136,6 +136,18 @@ void cliCmd(cli_args_t *args)
   if (args->argc == 1 && args->isStr(0, "info"))
   {
     cliPrintf("is_info_enable : %s\n", is_info_enable ? "on":"off");
+
+    usb_hid_rate_info_t hid_info;
+
+    usbHidGetRateInfo(&hid_info);
+    
+    logPrintf("Scan Rate : %d.%d KHz\n", get_matrix_scan_rate()/1000, get_matrix_scan_rate()%1000);
+    logPrintf("Poll Rate : %d Hz, %d us(max), %d us(min)\n",
+              hid_info.freq_hz,
+              hid_info.time_max,
+              hid_info.time_min);
+    logPrintf("Scan Time : %d us\n", key_scan_time);
+
     ret = true;
   }
 
