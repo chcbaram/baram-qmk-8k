@@ -26,6 +26,9 @@
 - CMake
 - Make
 - GCC ARM
+  - Requires setting environment variables (Windows)
+    - ARM_TOOLCHAIN_DIR
+    - ex) D:/tools/gcc-arm-none-eabi-9-2020-q2-update-win32/bin
 - Python
 
 
