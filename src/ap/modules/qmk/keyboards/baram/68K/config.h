@@ -15,5 +15,7 @@
 #define MATRIX_ROWS                 5
 #define MATRIX_COLS                 16
 
+#define DEBOUNCE                    10
+
 #define DEBUG_MATRIX_SCAN_RATE
 #define GRAVE_ESC_ENABLE

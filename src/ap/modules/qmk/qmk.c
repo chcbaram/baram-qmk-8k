@@ -11,6 +11,11 @@ bool qmkInit(void)
   keyboard_setup();
   keyboard_init();
 
+  logPrintf("[  ] qmkInit(\n");
+  logPrintf("     MATRIX_ROWS : %d\n", MATRIX_ROWS);
+  logPrintf("     MATRIX_COLS : %d\n", MATRIX_COLS);
+  logPrintf("     DEBOUNCE    : %d\n", DEBOUNCE);
+
   return true;
 }
 

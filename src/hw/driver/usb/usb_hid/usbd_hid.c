@@ -147,7 +147,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   USB_DESC_TYPE_CONFIGURATION,                        /* bDescriptorType: Configuration */
   USB_HID_CONFIG_DESC_SIZ,                            /* wTotalLength: Bytes returned */
   0x00,
-  0x01,                                               /* bNumInterfaces: 1 interface */
+  0x02,                                               /* bNumInterfaces: 2 interface */
   0x01,                                               /* bConfigurationValue: Configuration value */
   0x00,                                               /* iConfiguration: Index of string descriptor
                                                          describing the configuration */
@@ -191,6 +191,51 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,
   HID_HS_BINTERVAL,                                   /* bInterval: Polling Interval */
   /* 34 */
+
+
+  /*---------------------------------------------------------------------------*/
+  /* VIA interface descriptor */
+  0x09,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_INTERFACE,                            /* bDescriptorType: */
+  0x01,                                               /* bInterfaceNumber: Number of Interface */
+  0x00,                                               /* bAlternateSetting: Alternate setting */
+  0x02,                                               /* bNumEndpoints: Two endpoints used */
+  0x03,                                               /* bInterfaceClass: HID */
+  0x00,                                               /* bInterfaceSubClass : 1=BOOT, 0=no boot */
+  0x00,                                               /* nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse */
+  0x00,                                               /* iInterface */
+
+  /******************** Descriptor of VIA ********************/
+  /* 43 */
+  0x09,                                               /* bLength: HID Descriptor size */
+  HID_DESCRIPTOR_TYPE,                                /* bDescriptorType: HID */
+  0x11,                                               /* bcdHID: HID Class Spec release number */
+  0x01,
+  0x00,                                               /* bCountryCode: Hardware target country */
+  0x01,                                               /* bNumDescriptors: Number of HID class descriptors to follow */
+  0x22,                                               /* bDescriptorType */
+  HID_KEYBOARD_VIA_REPORT_DESC_SIZE,                  /* wItemLength: Total length of Report descriptor */
+  0x00,
+
+  /******************** Descriptor of VIA endpoint ********************/
+  /* 52 */
+  0x07,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
+  HID_VIA_EP_IN,                                      /* bEndpointAddress: Endpoint Address (IN) */
+  USBD_EP_TYPE_INTR,                                  /* bmAttributes: Interrupt endpoint */
+  HID_VIA_EP_SIZE,                                    /* wMaxPacketSize: */
+  0x00,
+  4,                                                  /* bInterval: Polling Interval */
+
+  /* 59 */
+  0x07,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
+  HID_VIA_EP_OUT,                                     /* bEndpointAddress: Endpoint Address (OUT) */
+  USBD_EP_TYPE_INTR,                                  /* bmAttributes: Interrupt endpoint */
+  HID_VIA_EP_SIZE,                                    /* wMaxPacketSize: */
+  0x00,
+  4,                                                  /* bInterval: Polling Interval */
+  /* 66 */
 };
 #endif /* USE_USBD_COMPOSITE  */
 
@@ -396,7 +441,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
 
-    logPrintf("[OK] USB Hid\n     Keyboard\n");
+    logPrintf("[OK] USB Hid\n");
+    logPrintf("     Keyboard\n");
     cliAdd("usbhid", cliCmd);
 
     usbHidInitTimer();
@@ -767,6 +813,7 @@ static uint32_t key_time_log[KEY_TIME_LOG_MAX];
 static bool     key_time_raw_req = false;
 static uint32_t key_time_raw_pre;
 static uint32_t key_time_raw_log[KEY_TIME_LOG_MAX];
+static uint32_t key_time_pre_log[KEY_TIME_LOG_MAX];
 
 /**
   * @brief  USBD_HID_DataIn
@@ -877,8 +924,19 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   if (!USBD_is_suspended())
   {
     key_time_pre = micros();
-    memcpy(report_info.buf, p_data, length);
-    qbufferWrite(&report_q, (uint8_t *)&report_info, 1);  
+
+    memcpy(hid_buf, p_data, length);
+    if (USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE))
+    {
+      key_time_req = true;
+      rate_time_req = true;
+      rate_time_pre = micros();    
+    }  
+    else
+    {
+      memcpy(report_info.buf, p_data, length);
+      qbufferWrite(&report_q, (uint8_t *)&report_info, 1);        
+    }    
   }
   else
   {
@@ -953,6 +1011,7 @@ void usbHidMeasureRateTime(void)
     {
       key_time_raw_req = false;
       key_time_raw_log[key_time_idx] = micros()-key_time_raw_pre;
+      key_time_pre_log[key_time_idx] = key_time_pre-key_time_raw_pre;
     }
     else
     {
@@ -1021,7 +1080,7 @@ void usbHidInitTimer(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 115;
+  sConfigOC.Pulse = 120;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -1163,28 +1222,34 @@ void cliCmd(cli_args_t *args)
   if (args->argc == 1 && args->isStr(0, "log") == true)
   {
     uint16_t index;
-    uint16_t time_max[2] = {0, 0};
-    uint16_t time_min[2] = {0xFFFF, 0xFFFF};
-    uint16_t time_sum[2] = {0, 0};
+    uint16_t time_max[3] = {0, 0, 0};
+    uint16_t time_min[3] = {0xFFFF, 0xFFFF, 0xFFFF};
+    uint16_t time_sum[3] = {0, 0, 0};
 
 
     for (int i = 0; i < key_time_cnt; i++)
     {
-      index = (key_time_idx + i) % KEY_TIME_LOG_MAX;
+      if (key_time_cnt == KEY_TIME_LOG_MAX)
+        index = (key_time_idx + i) % KEY_TIME_LOG_MAX;
+      else
+        index = i;
 
-      cliPrintf("%2d: %3d us, raw : %3d us\n",
+      cliPrintf("%2d: %3d us, raw : %3d us, %d\n",
                 i,
                 key_time_log[index],
-                key_time_raw_log[index]);
+                key_time_raw_log[index],
+                key_time_pre_log[index]);
 
-      for (int j=0; j<2; j++)
+      for (int j=0; j<3; j++)
       {
         uint16_t data;
 
         if (j == 0)
           data = key_time_log[index]; 
-        else
+        else if (j == 1)
           data = key_time_raw_log[index]; 
+        else
+          data = key_time_pre_log[index];          
 
         time_sum[j] += data;
         if (data > time_max[j])
@@ -1197,9 +1262,12 @@ void cliCmd(cli_args_t *args)
     cliPrintf("\n");
     if (key_time_cnt > 0)
     {
-      cliPrintf("avg : %3d us, %3d us\n", time_sum[0]/key_time_cnt, time_sum[1]/key_time_cnt);
-      cliPrintf("max : %3d us, %3d us\n", time_max[0], time_max[1]);
-      cliPrintf("min : %3d us, %3d us\n", time_min[0], time_min[1]);
+      cliPrintf("avg : %3d us %3d us %3d us\n",
+                time_sum[0] / key_time_cnt,
+                time_sum[1] / key_time_cnt,
+                time_sum[2] / key_time_cnt);
+      cliPrintf("max : %3d us %3d us %3d us\n", time_max[0], time_max[1], time_max[2]);
+      cliPrintf("min : %3d us %3d us %3d us\n", time_min[0], time_min[1], time_min[2]);
     }
     ret = true;
   }

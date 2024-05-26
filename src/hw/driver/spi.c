@@ -29,7 +29,12 @@ typedef struct
 static spi_t spi_tbl[SPI_MAX_CH];
 
 static SPI_HandleTypeDef hspi1;
+static DMA_NodeTypeDef Node_GPDMA1_Channel1;
+static DMA_QListTypeDef List_GPDMA1_Channel1;
 static DMA_HandleTypeDef handle_GPDMA1_Channel1;
+
+
+
 
 
 bool spiInit(void)
@@ -69,7 +74,7 @@ bool spiBegin(uint8_t ch)
       p_spi->h_spi->Init.CLKPolarity      = SPI_POLARITY_LOW;
       p_spi->h_spi->Init.CLKPhase         = SPI_PHASE_1EDGE;
       p_spi->h_spi->Init.NSS              = SPI_NSS_HARD_OUTPUT;
-      p_spi->h_spi->Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_128; 
+      p_spi->h_spi->Init.BaudRatePrescaler= SPI_BAUDRATEPRESCALER_128; // 128=1.25Mhz, 64:2.5Mhz 
       p_spi->h_spi->Init.FirstBit         = SPI_FIRSTBIT_MSB;
       p_spi->h_spi->Init.TIMode           = SPI_TIMODE_DISABLE;
       p_spi->h_spi->Init.CRCCalculation   = SPI_CRCCALCULATION_DISABLE;
@@ -353,11 +358,6 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
   {
     spi_tbl[_DEF_SPI1].is_rx_done = true;
   }  
-
-  if (hspi->Instance == spi_tbl[_DEF_SPI2].h_spi->Instance)
-  {
-    spi_tbl[_DEF_SPI2].is_rx_done = true;
-  }  
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
@@ -365,10 +365,6 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
   if (hspi->Instance == spi_tbl[_DEF_SPI1].h_spi->Instance)
   {
     spi_tbl[_DEF_SPI1].is_error = true;
-  }
-  if (hspi->Instance == spi_tbl[_DEF_SPI2].h_spi->Instance)
-  {
-    spi_tbl[_DEF_SPI2].is_error = true;
   }
 }
 
@@ -387,6 +383,7 @@ void GPDMA1_Channel1_IRQHandler(void)
 void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  DMA_NodeConfTypeDef NodeConfig= {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   if(spiHandle->Instance==SPI1)
@@ -424,24 +421,55 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
 
     /* SPI1 DMA Init */
     /* GPDMA1_REQUEST_SPI1_TX Init */
-    handle_GPDMA1_Channel1.Instance = GPDMA1_Channel1;
-    handle_GPDMA1_Channel1.Init.Request = GPDMA1_REQUEST_SPI1_TX;
-    handle_GPDMA1_Channel1.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
-    handle_GPDMA1_Channel1.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    handle_GPDMA1_Channel1.Init.SrcInc = DMA_SINC_FIXED;
-    handle_GPDMA1_Channel1.Init.DestInc = DMA_DINC_INCREMENTED;
-    handle_GPDMA1_Channel1.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
-    handle_GPDMA1_Channel1.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
-    handle_GPDMA1_Channel1.Init.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
-    handle_GPDMA1_Channel1.Init.SrcBurstLength = 1;
-    handle_GPDMA1_Channel1.Init.DestBurstLength = 1;
-    handle_GPDMA1_Channel1.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
-    handle_GPDMA1_Channel1.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
-    handle_GPDMA1_Channel1.Init.Mode = DMA_NORMAL;
-    if (HAL_DMA_Init(&handle_GPDMA1_Channel1) != HAL_OK)
+    NodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
+    NodeConfig.Init.Request = GPDMA1_REQUEST_SPI1_TX;
+    NodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    NodeConfig.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    NodeConfig.Init.SrcInc = DMA_SINC_FIXED;
+    NodeConfig.Init.DestInc = DMA_DINC_FIXED;
+    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.SrcBurstLength = 1;
+    NodeConfig.Init.DestBurstLength = 1;
+    NodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1|DMA_DEST_ALLOCATED_PORT0;
+    NodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    NodeConfig.Init.Mode = DMA_NORMAL;
+    NodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
+    NodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
+    NodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
+    if (HAL_DMAEx_List_BuildNode(&NodeConfig, &Node_GPDMA1_Channel1) != HAL_OK)
     {
       Error_Handler();
     }
+
+    if (HAL_DMAEx_List_InsertNode(&List_GPDMA1_Channel1, NULL, &Node_GPDMA1_Channel1) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    if (HAL_DMAEx_List_SetCircularMode(&List_GPDMA1_Channel1) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    handle_GPDMA1_Channel1.Instance = GPDMA1_Channel1;
+    handle_GPDMA1_Channel1.InitLinkedList.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+    handle_GPDMA1_Channel1.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+    handle_GPDMA1_Channel1.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT1;
+    handle_GPDMA1_Channel1.InitLinkedList.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel1.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
+    if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel1) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    if (HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel1, &List_GPDMA1_Channel1) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    handle_GPDMA1_Channel1.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+    handle_GPDMA1_Channel1.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
 
     __HAL_LINKDMA(spiHandle, hdmatx, handle_GPDMA1_Channel1);
 
@@ -450,12 +478,13 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
       Error_Handler();
     }
 
-    /* SPI1 interrupt Init */
-    HAL_NVIC_SetPriority(SPI1_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(SPI1_IRQn);
 
-    HAL_NVIC_SetPriority(GPDMA1_Channel1_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
+    /* SPI1 interrupt Init */
+    // HAL_NVIC_SetPriority(SPI1_IRQn, 5, 0);
+    // HAL_NVIC_EnableIRQ(SPI1_IRQn);
+
+    // HAL_NVIC_SetPriority(GPDMA1_Channel1_IRQn, 5, 0);
+    // HAL_NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
   }
 }
 
