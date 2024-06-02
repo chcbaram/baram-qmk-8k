@@ -147,6 +147,10 @@ target_link_options(${EXECUTABLE} PRIVATE
 set (CMAKE_C_FLAGS "-Wenum-conversion")
 set (CMAKE_CXX_FLAGS "-fno-rtti")
 
+message(${CMAKE_CXX_COMPILER_VERSION})
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
+  string(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl,--no-warn-rwx-segments")
+endif()
 
 add_custom_command(TARGET ${EXECUTABLE} 
   POST_BUILD
