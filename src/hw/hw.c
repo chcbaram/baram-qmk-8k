@@ -33,6 +33,8 @@ bool hwInit(void)
   logPrintf("Booting..KBD  \t\t: %s\r\n", KBD_NAME);  
   logPrintf("Booting..Ver  \t\t: %s\r\n", _DEF_FIRMWATRE_VERSION);  
   logPrintf("Booting..Clock\t\t: %d Mhz\r\n", (int)HAL_RCC_GetSysClockFreq()/1000000);
+  logPrintf("Booting..Date \t\t: %s\r\n", __DATE__); 
+  logPrintf("Booting..Time \t\t: %s\r\n", __TIME__); 
   logPrintf("\n");
 
   rtcInit();

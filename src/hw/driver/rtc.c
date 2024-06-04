@@ -245,7 +245,7 @@ void cliRtc(cli_args_t *args)
 
   if (args->argc == 2 && args->isStr(0, "get") && args->isStr(1, "info"))
   {
-    rtc_info_t rtc_info;
+    rtc_info_t rtc_info = {0,};
 
     while(cliKeepLoop())
     {
