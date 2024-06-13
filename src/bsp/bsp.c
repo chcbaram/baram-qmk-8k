@@ -23,6 +23,8 @@ bool bspInit(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+
   if (HAL_ICACHE_Enable() != HAL_OK)
   {
     ret = false;
