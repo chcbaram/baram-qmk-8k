@@ -52,10 +52,6 @@ void via_hid_receive(uint8_t *data, uint8_t length)
 
 void via_hid_print(uint8_t *data, uint8_t length, bool is_resp)
 {
-  #if 1
-  return;
-  #endif
-
   uint8_t *command_id   = &(data[0]);
   uint8_t *command_data = &(data[1]);  
   uint8_t data_len = length - 1;
