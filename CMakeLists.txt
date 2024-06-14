@@ -4,6 +4,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 include(arm-none-eabi-gcc)
 
 
+
 # 프로젝트 이름은 최종 출력 파일 이름으로 사용된다.
 #
 set(PRJ_NAME baram-qmk-8k)
@@ -163,10 +164,17 @@ string(REPLACE "\"" "" config_out ${config_in})
 string(REGEX MATCH "KBD_NAME * ([-A-Za-z0-9]*)" _ ${config_out})
 set(KBD_NAME ${CMAKE_MATCH_1})
 
+file(READ "src/hw/hw_def.h" version_in)
+string(REPLACE "\"" "" version_out ${version_in})
+string(REGEX MATCH "_DEF_FIRMWATRE_VERSION * ([-A-Za-z0-9]*)" _ ${version_out})
+set(FIRM_VER ${CMAKE_MATCH_1})
+
 message("${KBD_NAME}")
+message("${FIRM_VER}")
+
   
 add_custom_command(TARGET ${EXECUTABLE} 
   POST_BUILD
-  COMMAND ${PYTHON_EXECUTABLE} ARGS ${CMAKE_CURRENT_SOURCE_DIR}/tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${KBD_NAME}.uf2
+  COMMAND ${PYTHON_EXECUTABLE} ARGS ${CMAKE_CURRENT_SOURCE_DIR}/tools/uf2/uf2conv.py ARGS ${PROJECT_NAME}.bin --family 0xFFFF0001 --convert --output ${KBD_NAME}-${FIRM_VER}.uf2
   COMMENT "Invoking: Make UF2"
   )    
