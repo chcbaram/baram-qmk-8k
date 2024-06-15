@@ -1,0 +1,28 @@
+{
+  "settings": {
+    "C_Cpp.autoAddFileAssociations": false,
+    "files.exclude": {
+      "**/.DS_Store": true,
+      "**/.hg": true,
+      "**/.svn": true,
+      "**/CVS": true,
+      "**/prj": true,
+      "**/Thumbs.db": true,
+
+      "**/src/ap/modules/qmk/keyboards":true
+    },
+    "cortex-debug.variableUseNaturalFormat": true,
+    "keyboard_path": "/keyboards/baram/TKL",
+  },
+
+	"folders": [
+    {
+      "name": "firmware",
+      "path": "../../",
+    },
+    {
+      "name": "keyboard",
+      "path": "../../src/ap/modules/qmk/keyboards/baram/TKL",
+    },
+  ],  
+}
