@@ -2,7 +2,11 @@
 #include "raw_hid.h"
 
 
+#define USE_VIA_HID_PRINT   0
 
+
+
+#if USE_VIA_HID_PRINT == 1
 static const char *command_id_str[] =
 {
   [id_get_protocol_version]                 = "id_get_protocol_version",
@@ -29,9 +33,11 @@ static const char *command_id_str[] =
   [id_unhandled]                            = "id_unhandled",
 };
 
-static void via_hid_receive(uint8_t *data, uint8_t length);
 static void via_hid_print(uint8_t *data, uint8_t length, bool is_resp);
+#endif
 
+
+static void via_hid_receive(uint8_t *data, uint8_t length);
 
 
 void via_hid_init(void)
@@ -46,10 +52,13 @@ void raw_hid_send(uint8_t *data, uint8_t length)
 
 void via_hid_receive(uint8_t *data, uint8_t length)
 {
+  #if USE_VIA_HID_PRINT == 1
   via_hid_print(data, length, true);
+  #endif
   raw_hid_receive(data, length);
 }
 
+#if USE_VIA_HID_PRINT == 1
 void via_hid_print(uint8_t *data, uint8_t length, bool is_resp)
 {
   uint8_t *command_id   = &(data[0]);
@@ -78,3 +87,4 @@ void via_hid_print(uint8_t *data, uint8_t length, bool is_resp)
   }
   logPrintf("\n");  
 }
+#endif

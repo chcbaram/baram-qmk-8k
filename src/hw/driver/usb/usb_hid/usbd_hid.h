@@ -142,6 +142,15 @@ extern USBD_ClassTypeDef USBD_HID;
 uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 
+enum 
+{
+  USB_HID_LED_NUM_LOCK    = (1 << 0),
+  USB_HID_LED_CAPS_LOCK   = (1 << 1),
+  USB_HID_LED_SCROLL_LOCK = (1 << 2),
+  USB_HID_LED_COMPOSE     = (1 << 3),
+  USB_HID_LED_KANA        = (1 << 4)
+};
+
 typedef struct
 {
   uint32_t freq_hz;
@@ -153,6 +162,7 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info);
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us);
+void usbHidSetStatusLed(uint8_t led_bits);
 
 /**
   * @}

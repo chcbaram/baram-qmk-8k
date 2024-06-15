@@ -42,7 +42,7 @@
 
 #define _USE_HW_USB
 #define _USE_HW_CDC
-#define      HW_USB_LOG             1
+#define      HW_USB_LOG             0
 #define      HW_USB_CMP             0
 #define      HW_USB_CDC             0
 #define      HW_USB_MSC             0
@@ -90,6 +90,6 @@
 #define _USE_CLI_HW_RESET           1
 #define _USE_CLI_HW_KEYS            1
 #define _USE_CLI_HW_LOADER          1
-
+#define _USE_CLI_HW_WS2812          1
 
 #endif

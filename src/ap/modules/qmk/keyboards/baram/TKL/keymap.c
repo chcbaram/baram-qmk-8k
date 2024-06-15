@@ -5,7 +5,6 @@
 
 
 
-
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [0] = {
       // 0        1        2        3        4        5        6        7        8        9        10       11       12       13       14       15
@@ -17,3 +16,18 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         {KC_LCTL, KC_LGUI, KC_LALT, KC_SPC,  KC_RALT, KC_RGUI, KC_MENU, KC_RCTL, KC_LEFT, KC_DOWN, KC_RGHT, _______, _______, _______, _______, _______}  // 5
     }         
 };
+
+void usbHidSetStatusLed(uint8_t led_bits)
+{
+  if (led_bits & USB_HID_LED_CAPS_LOCK)
+    ws2812SetColor(1, WS2812_COLOR_GREEN);
+  else
+    ws2812SetColor(1, WS2812_COLOR_OFF);
+
+  if (led_bits & USB_HID_LED_SCROLL_LOCK)
+    ws2812SetColor(0, WS2812_COLOR_GREEN);
+  else
+    ws2812SetColor(0, WS2812_COLOR_OFF);
+
+  ws2812Refresh();
+}

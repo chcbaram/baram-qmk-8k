@@ -24,6 +24,7 @@ extern "C" {
 #include "rtc.h"
 #include "reset.h"
 #include "loader.h"
+#include "ws2812.h"
 
 
 bool hwInit(void);

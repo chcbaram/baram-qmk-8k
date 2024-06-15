@@ -49,7 +49,7 @@
 #include "qbuffer.h"
 
 
-#if HW_USB_LOG == 0
+#if HW_USB_LOG == 1
 #define logDebug(...)                              \
   {                                                \
     if (HW_LOG_CH == HW_UART_CH_USB) logDisable(); \
@@ -92,16 +92,27 @@ static bool usbHidUpdateWakeUp(USBD_HandleTypeDef *pdev);
 static void usbHidInitTimer(void);
 
 
+
+
+
 typedef struct
 {
   uint8_t  buf[HID_KEYBOARD_REPORT_SIZE];
 } report_info_t;
 
+typedef struct
+{
+  uint8_t  buf[32];
+} via_report_info_t;
 
 static USBD_SetupReqTypedef ep0_req;
 static uint8_t ep0_req_buf[USB_MAX_EP0_SIZE];
 
-__ALIGN_BEGIN  static uint8_t via_hid_usb_report[32] __ALIGN_END;
+static qbuffer_t             via_report_q;
+static via_report_info_t     via_report_q_buf[128];
+static uint32_t              via_report_pre_time;
+static uint32_t              via_report_time = 20;
+__ALIGN_BEGIN static uint8_t via_hid_usb_report[32] __ALIGN_END;
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 
@@ -440,6 +451,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     is_first = false;
 
     qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
+    qbufferCreateBySize(&via_report_q, (uint8_t *)via_report_q_buf, sizeof(via_report_info_t), 128); 
 
     logPrintf("[OK] USB Hid\n");
     logPrintf("     Keyboard\n");
@@ -656,6 +668,12 @@ uint8_t USBD_HID_EP0_RxReady(USBD_HandleTypeDef *pdev)
     logDebug("  %d : 0x%02X\n", i, ep0_req_buf[i]);
   }
 
+  if (ep0_req.bRequest == USBD_HID_REQ_SET_REPORT)
+  {
+    uint8_t led_bits = ep0_req_buf[0];
+
+    usbHidSetStatusLed(led_bits);
+  }
   return (uint8_t)USBD_OK;
 }
 
@@ -860,9 +878,15 @@ static uint8_t USBD_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     via_hid_receive_func(via_hid_usb_report, rx_size);
   }
 
+  #if 0
   USBD_LL_Transmit(pdev, HID_VIA_EP_OUT, via_hid_usb_report, sizeof(via_hid_usb_report));
   USBD_LL_PrepareReceive(pdev, HID_VIA_EP_OUT, via_hid_usb_report, sizeof(via_hid_usb_report));
-
+  #else
+  via_report_info_t info;
+  memcpy(info.buf, via_hid_usb_report, sizeof(via_hid_usb_report));
+  qbufferWrite(&via_report_q, (uint8_t *)&info, 1);
+  via_report_pre_time = millis();
+  #endif
   return (uint8_t)USBD_OK;
 }
 
@@ -870,6 +894,12 @@ uint8_t USBD_HID_SOF(USBD_HandleTypeDef *pdev)
 {
   usbHidMeasurePollRate();
 
+  if (qbufferAvailable(&via_report_q) && (millis()-via_report_pre_time) >= via_report_time)
+  {
+    qbufferRead(&via_report_q, (uint8_t *)via_hid_usb_report, 1);
+    USBD_LL_Transmit(pdev, HID_VIA_EP_OUT, via_hid_usb_report, sizeof(via_hid_usb_report));
+    USBD_LL_PrepareReceive(pdev, HID_VIA_EP_OUT, via_hid_usb_report, sizeof(via_hid_usb_report));
+  }
   return (uint8_t)USBD_OK;
 }
 
@@ -1039,6 +1069,11 @@ bool usbHidSetTimeLog(uint16_t index, uint32_t time_us)
   key_time_raw_pre = time_us;
   key_time_raw_req = true;
   return true;
+}
+
+__weak void usbHidSetStatusLed(uint8_t led_bits)
+{
+
 }
 
 void usbHidInitTimer(void)
