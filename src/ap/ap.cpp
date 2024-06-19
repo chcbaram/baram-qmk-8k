@@ -18,14 +18,18 @@ void apInit(void)
 void apMain(void)
 {
   uint32_t pre_time;
+  bool is_led_on = true;
+
+
+  ledOn(_DEF_LED1);
 
   pre_time = millis();
   while(1)
   {
-    if (millis()-pre_time >= 500)
+    if (is_led_on && millis()-pre_time >= 500)
     {
-      pre_time = millis();
-      ledToggle(_DEF_LED1);
+      is_led_on = false;
+      ledOff(_DEF_LED1);
     }
 
     cliUpdate();
