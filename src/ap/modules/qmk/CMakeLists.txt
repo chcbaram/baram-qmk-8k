@@ -63,6 +63,8 @@ set (QMK_INC_DIR
 )
 
 
+add_compile_definitions(DYNAMIC_KEYMAP_MACRO_DELAY=10)
+
 add_compile_definitions(VIA_ENABLE)
 add_compile_definitions(RAW_ENABLE)
 add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
