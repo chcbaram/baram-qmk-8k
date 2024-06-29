@@ -1,7 +1,7 @@
 #pragma once
 
 
-#define KBD_NAME                    "BARAM-8K-TKL"
+#define KBD_NAME                    "VENOM-80MX-6.25U"
 
 #define USB_VID                     0x0483
 #define USB_PID                     0x5205

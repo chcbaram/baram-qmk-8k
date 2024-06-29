@@ -161,7 +161,7 @@ add_custom_command(TARGET ${EXECUTABLE}
 
 file(READ "${QMK_KEYBOARD_PATH}/config.h" config_in)
 string(REPLACE "\"" "" config_out ${config_in})
-string(REGEX MATCH "KBD_NAME * ([-A-Za-z0-9]*)" _ ${config_out})
+string(REGEX MATCH "KBD_NAME * ([-A-Za-z0-9.]*)" _ ${config_out})
 set(KBD_NAME ${CMAKE_MATCH_1})
 
 file(READ "src/hw/hw_def.h" version_in)
