@@ -6,6 +6,15 @@
 #define USB_VID                     0x0483
 #define USB_PID                     0x5204
 
+
+// hw_def.h
+//
+#define _USE_HW_WS2812
+#define     HW_WS2812_MAX_CH        1
+
+
+// eeprom
+//
 #define EEPROM_CHIP_ZD24C128 
 #define EECONFIG_USER_DATA_SIZE     512               
 #define TOTAL_EEPROM_BYTE_COUNT     4096
