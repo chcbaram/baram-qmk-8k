@@ -9,8 +9,14 @@
 - VIA support (via JSON)
 
 ## Supported Keyboard
-- BARAM-45K
-- BARAM-68K
+- BARAM
+  - BARAM-45K
+  - BARAM-53K
+  - BARAM-68K
+- GEON
+  - VENOM-60MX-7U
+  - VENOM-80MX-6.25U
+
 
 ## Block Diagram
 - Architecture
