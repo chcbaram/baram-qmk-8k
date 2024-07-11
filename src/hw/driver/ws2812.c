@@ -266,14 +266,25 @@ void cliCmd(cli_args_t *args)
                          WS2812_COLOR_OFF};
 
     uint8_t color_idx = 0;
+    uint32_t pre_time;
 
+
+    pre_time = millis();
     while(cliKeepLoop())
     {
-      ws2812SetColor(0, color[color_idx]);
-      ws2812Refresh();
-      color_idx = (color_idx + 1) % 6;
-
-      delay(500);
+      if (millis()-pre_time >= 500)
+      {
+        pre_time = millis();
+        
+        for (int i=0; i<WS2812_MAX_CH; i++)
+        {      
+          ws2812SetColor(i, color[color_idx]);
+        }
+        ws2812Refresh();
+        color_idx = (color_idx + 1) % 6;
+      }
+      
+      cliLoopIdle();
     }
 
     for (int i=0; i<WS2812_MAX_CH; i++)

@@ -60,3 +60,8 @@ void cliUpdate(void)
 
   cliMain();
 }
+
+void cliLoopIdle(void)
+{
+  qmkUpdate();
+}
