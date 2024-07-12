@@ -72,12 +72,7 @@ set (QMK_INC_DIR
   ${QMK_ROOT_PATH}/quantum/sequencer
   ${QMK_ROOT_PATH}/quantum/send_string
   ${QMK_ROOT_PATH}/quantum/process_keycode
-
-  if (RGBLIGHT_ENABLE)
-    ${QMK_ROOT_PATH}/quantum/rgblight
-    ${QMK_ROOT_PATH}/quantum/rgb_matrix/animations
-    ${QMK_ROOT_PATH}/quantum/rgb_matrix/animations/runners
-  endif()
+  ${QMK_ROOT_PATH}/quantum/rgblight
 
   ${QMK_KEYBOARD_PATH}
 )

@@ -10,7 +10,68 @@
     "qmk_lighting"
   ],
   "menus": [
-    "qmk_rgblight"
+    {
+      "label": "Lighting",
+      "content": [
+        {
+          "label": "Underglow",
+          "content": [
+            {
+              "label": "Brightness",
+              "type": "range",
+              "options": [0, 255],
+              "content": ["id_qmk_rgblight_brightness", 2, 1]
+            },
+            {
+              "label": "Effect",
+              "type": "dropdown",
+              "content": ["id_qmk_rgblight_effect", 2, 2],
+              "options": [
+                ["All Off",     0],
+                ["Solid Color", 1],
+                ["Breathing 1", 2],
+                ["Breathing 2", 3],
+                ["Breathing 3", 4],
+                ["Breathing 4", 5],
+
+                ["Snake 1",     6], 
+                ["Snake 2",     7], 
+                ["Snake 3",     8], 
+                ["Snake 4",     9], 
+                ["Snake 5",     10], 
+                ["Snake 6",     11], 
+
+                ["Gradient 1",  12],
+                ["Gradient 2",  13],
+                ["Gradient 3",  14],
+                ["Gradient 4",  15],
+                ["Gradient 5",  16],
+                ["Gradient 6",  17],
+                ["Gradient 7",  18],
+                ["Gradient 8",  19],
+                ["Gradient 9",  20],
+                ["Gradient 10", 21],
+
+                ["RGB Test",    22]
+              ]
+            },
+            {
+              "showIf": "{id_qmk_rgblight_effect} != 0",
+              "label": "Effect Speed",
+              "type": "range",
+              "options": [0, 255],
+              "content": ["id_qmk_rgblight_effect_speed", 2, 3]
+            },
+            {
+              "showIf": "{id_qmk_rgblight_effect} != 0 && {id_qmk_rgblight_effect} != 22",
+              "label": "Color",
+              "type": "color",
+              "content": ["id_qmk_rgblight_color", 2, 4]
+            }
+          ]
+        }
+      ]
+    }
   ],
     
 	"layouts": {
