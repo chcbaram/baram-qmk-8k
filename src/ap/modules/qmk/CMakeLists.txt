@@ -10,7 +10,6 @@ endif()
 
 
 if (RGBLIGHT_ENABLE)
-  list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/color.c")
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/rgblight/rgblight.c")
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/process_keycode/process_rgb.c")
   list(APPEND QMK_ADD_FILES "${QMK_KEYBOARD_PATH}/driver/rgblight_drivers.c")
@@ -40,6 +39,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/dynamic_keymap.c
   ${QMK_ROOT_PATH}/quantum/eeconfig.c
   ${QMK_ROOT_PATH}/quantum/keymap_introspection.c
+  ${QMK_ROOT_PATH}/quantum/color.c
 
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c
@@ -52,7 +52,8 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
 
 
   # ${QMK_KEYBOARD_PATH}/*.c
-
+  ${QMK_KEYBOARD_PATH}/port/*.c
+  
   ${QMK_ADD_FILES}
 )
 

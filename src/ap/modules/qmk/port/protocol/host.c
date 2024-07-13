@@ -61,7 +61,7 @@ void    set_split_host_keyboard_leds(uint8_t led_state) {
 }
 #endif
 
-uint8_t host_keyboard_leds(void) {
+__WEAK uint8_t host_keyboard_leds(void) {
 #ifdef SPLIT_KEYBOARD
     if (!is_keyboard_master()) return split_led_state;
 #endif
