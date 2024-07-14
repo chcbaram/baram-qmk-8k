@@ -49,3 +49,13 @@ bool suspend_wakeup_condition(void) {
     }
     return false;
 }
+
+void suspend_power_down(void)
+{
+  suspend_power_down_quantum();
+}
+
+void suspend_wakeup_init(void)
+{
+  suspend_wakeup_init_quantum();
+}

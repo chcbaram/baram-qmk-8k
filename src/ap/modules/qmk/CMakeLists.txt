@@ -1,9 +1,20 @@
 cmake_minimum_required(VERSION 3.13)
 set(QMK_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/ap/modules/qmk")
 
-
-
 set (QMK_KEYBOARD_PATH ${QMK_ROOT_PATH}/${KEYBOARD_PATH})
+
+if (EXISTS "${QMK_KEYBOARD_PATH}/config.cmake")
+  include ("${QMK_KEYBOARD_PATH}/config.cmake")
+endif()
+
+
+
+if (RGBLIGHT_ENABLE)
+  list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/rgblight/rgblight.c")
+  list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/process_keycode/process_rgb.c")
+  list(APPEND QMK_ADD_FILES "${QMK_KEYBOARD_PATH}/driver/rgblight_drivers.c")
+endif()  
+
 
 
 # 지정한 폴더에 있는 파일만 포함한다.
@@ -28,6 +39,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/dynamic_keymap.c
   ${QMK_ROOT_PATH}/quantum/eeconfig.c
   ${QMK_ROOT_PATH}/quantum/keymap_introspection.c
+  ${QMK_ROOT_PATH}/quantum/color.c
 
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c
@@ -40,6 +52,9 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
 
 
   # ${QMK_KEYBOARD_PATH}/*.c
+  ${QMK_KEYBOARD_PATH}/port/*.c
+  
+  ${QMK_ADD_FILES}
 )
 
 # 하위폴더에 있는 파일까지 포함한다.
@@ -58,10 +73,10 @@ set (QMK_INC_DIR
   ${QMK_ROOT_PATH}/quantum/sequencer
   ${QMK_ROOT_PATH}/quantum/send_string
   ${QMK_ROOT_PATH}/quantum/process_keycode
+  ${QMK_ROOT_PATH}/quantum/rgblight
 
   ${QMK_KEYBOARD_PATH}
 )
-
 
 add_compile_definitions(DYNAMIC_KEYMAP_MACRO_DELAY=10)
 
@@ -77,3 +92,8 @@ add_compile_definitions(QMK_KEYMAP_CONFIG_H="${QMK_KEYBOARD_PATH}/config.h")
 add_compile_definitions(KEYMAP_C="${QMK_KEYBOARD_PATH}/keymap.c")
 
 
+
+
+if (RGBLIGHT_ENABLE)
+  add_compile_definitions(RGBLIGHT_ENABLE)
+endif()
