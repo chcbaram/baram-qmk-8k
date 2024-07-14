@@ -5,7 +5,38 @@
 	"productId": "0x5204",
 	
 	"matrix": { "rows": 5, "cols": 16 },
-	
+
+  "menus": [
+    {
+      "label": "Lighting",
+      "content": [
+        {
+          "label": "INDICATORS",
+          "content": [
+            {
+              "label": "Caps Enable",
+              "type": "toggle",
+              "content": ["id_qmk_led_caps_enable", 6, 1]
+            },            
+            {
+              "showIf": "{id_qmk_led_caps_enable} == 1",
+              "label": "Caps Brightness",
+              "type": "range",
+              "options": [0, 255],
+              "content": ["id_qmk_led_caps_brightness", 6, 2]
+            },
+            {
+              "showIf": "{id_qmk_led_caps_enable} == 1",
+              "label": "Caps Color",
+              "type": "color",
+              "content": ["id_qmk_led_caps_color", 6, 3]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  
 	"layouts": {
     
     "labels": [
