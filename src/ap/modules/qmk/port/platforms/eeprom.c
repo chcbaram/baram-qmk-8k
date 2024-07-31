@@ -1,6 +1,4 @@
-#include "eeprom.h"
-#include "hw/include/eeprom.h"
-#include "qbuffer.h"
+#include "quantum.h"
 
 
 #define EEPROM_WRITE_Q_BUF_MAX  (TOTAL_EEPROM_BYTE_COUNT + 1)
@@ -15,7 +13,7 @@ typedef struct
 static uint8_t        eeprom_buf[TOTAL_EEPROM_BYTE_COUNT];
 static qbuffer_t      write_q;
 static eeprom_write_t write_buf[EEPROM_WRITE_Q_BUF_MAX];
-
+static bool           is_req_clean = false;
 
 
 void eeprom_init(void)
@@ -24,7 +22,7 @@ void eeprom_init(void)
   qbufferCreateBySize(&write_q, (uint8_t *)write_buf, sizeof(eeprom_write_t), EEPROM_WRITE_Q_BUF_MAX); 
 }
 
-void eeprom_task(void)
+void eeprom_update(void)
 {
   eeprom_write_t write_byte;
 
@@ -42,6 +40,22 @@ void eeprom_task(void)
       logPrintf("eepromWriteByte() Fail\n");
     }
   }
+}
+
+void eeprom_task(void)
+{
+  eeprom_update();
+
+  if (is_req_clean)
+  {
+    eeconfig_disable();
+    soft_reset_keyboard();
+  }
+}
+
+void eeprom_req_clean(void)
+{
+  is_req_clean = true;
 }
 
 uint8_t  eeprom_read_byte(const uint8_t *addr)

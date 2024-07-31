@@ -8,7 +8,9 @@
 
 
 void     eeprom_init(void);
+void     eeprom_update(void);
 void     eeprom_task(void);
+void     eeprom_req_clean(void);
 uint8_t  eeprom_read_byte(const uint8_t *addr);
 uint16_t eeprom_read_word(const uint16_t *addr);
 uint32_t eeprom_read_dword(const uint32_t *addr);
