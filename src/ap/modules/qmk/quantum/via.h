@@ -113,6 +113,8 @@ enum via_channel_id {
     id_qmk_led_matrix_channel = 5,
     id_qmk_led_caps_channel   = 6,
     id_qmk_led_scroll_channel = 7,
+    id_qmk_version            = 8,
+    id_qmk_system             = 9,
 };
 
 enum via_qmk_backlight_value {

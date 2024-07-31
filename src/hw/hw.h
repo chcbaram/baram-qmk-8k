@@ -25,6 +25,7 @@ extern "C" {
 #include "reset.h"
 #include "loader.h"
 #include "ws2812.h"
+#include "qbuffer.h"
 
 
 bool hwInit(void);
