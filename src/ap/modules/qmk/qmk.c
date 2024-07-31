@@ -30,6 +30,13 @@ bool qmkInit(void)
   return true;
 }
 
+void keyboard_post_init_user(void)
+{
+#ifdef KILL_SWITCH_ENABLE
+  kill_switch_init();
+#endif
+}
+
 void qmkUpdate(void)
 {
   keyboard_task();

@@ -36,6 +36,50 @@
       ]
     },
     {
+      "label": "FEATURE",
+      "content": [
+        {
+          "label": "KILL SWITCH",
+          "content": [
+            {
+              "label": "L/R Enable",
+              "type": "toggle",
+              "content": ["id_qmk_kill_switch_enable_lr", 10, 1]
+            },            
+            {
+              "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
+              "label": "- LEFT KEY",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_left", 10, 2]
+            },
+            {
+              "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
+              "label": "- RIGHT KEY",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_right", 10, 3]
+            },
+            {
+              "label": "U/D Enable",
+              "type": "toggle",
+              "content": ["id_qmk_kill_switch_enable_ud", 11, 1]
+            },            
+            {
+              "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
+              "label": "- UP KEY",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_up", 11, 2]
+            },
+            {
+              "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
+              "label": "- DOWN KEY",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_down", 11, 3]
+            }            
+          ]
+        }      
+      ]
+    },    
+    {
       "label": "SYSTEM",
       "content": [
         {
