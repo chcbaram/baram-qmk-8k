@@ -53,6 +53,72 @@
           ]
         }
       ]
+    },
+    {
+      "label": "SYSTEM",
+      "content": [
+        {
+          "label": "VERSION",
+          "content": [
+            {
+              "label": "Year",
+              "type": "dropdown",
+              "options": ["24","25","26","27","28","29","30","31","32","33"],
+              "content": ["id_qmk_ver_yy", 8, 1]
+            },
+            {
+              "label": "Month",
+              "type": "dropdown",
+              "options": ["01","02","03","04","05","06","07","08","09","10","11","12"],
+              "content": ["id_qmk_ver_mm", 8, 2]
+            },            
+            {
+              "label": "Day",
+              "type": "dropdown",
+              "options": ["01","02","03","04","05","06","07","08","09","10",
+                          "11","12","13","14","15","16","17","18","19","20",
+                          "21","22","23","24","25","26","27","28","29","30","31"],
+              "content": ["id_qmk_ver_dd", 8, 3]
+            },
+            {
+              "label": "Rev.",
+              "type": "dropdown",
+              "options": ["R1","R2","R3","R4","R5","R6","R7","R8","R9"],
+              "content": ["id_qmk_ver_rv", 8, 4]
+            }                     
+          ]
+        },
+        {
+          "label": "BOOT",
+          "content": [
+            {
+              "label": "Jump To BOOT",
+              "type": "toggle",
+              "content": ["id_qmk_system_dfu", 9, 1]
+            }                           
+          ]
+        },
+        {
+          "label": "CLEAN",
+          "content": [
+            {
+              "label": "EEPROM Clean Confirm 1",
+              "type": "toggle",
+              "content": ["id_qmk_system_reset_0", 9, 2]
+            },
+            {
+              "label": "EEPROM Clean Confirm 2",
+              "type": "toggle",
+              "content": ["id_qmk_system_reset_1", 9, 3]
+            },
+            {
+              "label": "Are you sure ?",
+              "type": "toggle",
+              "content": ["id_qmk_system_reset_done", 9, 4]
+            }                           
+          ]
+        }        
+      ]
     }
   ],
 

@@ -1,5 +1,6 @@
-#include "quantum.h"
 #include "led_port.h"
+#include "ver_port.h"
+#include "sys_port.h"
 
 
 
@@ -19,9 +20,22 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length)
     via_qmk_led_command(0, data, length);
     return;
   }
+  
   if (*channel_id == id_qmk_led_scroll_channel)
   {
     via_qmk_led_command(1, data, length);
+    return;
+  }
+
+  if (*channel_id == id_qmk_version)
+  {
+    via_qmk_version(data, length);
+    return;
+  }
+
+  if (*channel_id == id_qmk_system)
+  {
+    via_qmk_system(data, length);
     return;
   }
 
