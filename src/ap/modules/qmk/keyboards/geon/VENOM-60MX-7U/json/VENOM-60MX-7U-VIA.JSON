@@ -39,39 +39,39 @@
       "label": "FEATURE",
       "content": [
         {
-          "label": "KILL SWITCH",
+          "label": "SOCD",
           "content": [
             {
-              "label": "L/R Enable",
+              "label": "KEY BIND 1",
               "type": "toggle",
               "content": ["id_qmk_kill_switch_enable_lr", 10, 1]
             },            
             {
               "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
-              "label": "- LEFT KEY",
+              "label": "- KEY 1",
               "type": "keycode",
               "content": ["id_qmk_kill_switch_left", 10, 2]
             },
             {
               "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
-              "label": "- RIGHT KEY",
+              "label": "- KEY 2",
               "type": "keycode",
               "content": ["id_qmk_kill_switch_right", 10, 3]
             },
             {
-              "label": "U/D Enable",
+              "label": "KEY BIND 2",
               "type": "toggle",
               "content": ["id_qmk_kill_switch_enable_ud", 11, 1]
             },            
             {
               "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
-              "label": "- UP KEY",
+              "label": "- KEY 1",
               "type": "keycode",
               "content": ["id_qmk_kill_switch_up", 11, 2]
             },
             {
               "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
-              "label": "- DOWN KEY",
+              "label": "- KEY 2",
               "type": "keycode",
               "content": ["id_qmk_kill_switch_down", 11, 3]
             }            
