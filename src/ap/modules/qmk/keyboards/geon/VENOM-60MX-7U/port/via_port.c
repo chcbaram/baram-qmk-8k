@@ -31,6 +31,18 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length)
     return;
   }
 
+#ifdef KILL_SWITCH_ENABLE
+  if (*channel_id == id_qmk_kill_switch_lr)
+  {
+    via_qmk_kill_swtich_command(0, data, length);
+    return;
+  }
+  if (*channel_id == id_qmk_kill_switch_ud)
+  {
+    via_qmk_kill_swtich_command(1, data, length);
+    return;
+  }
+#endif
   // Return the unhandled state
   *command_id = id_unhandled;
 }

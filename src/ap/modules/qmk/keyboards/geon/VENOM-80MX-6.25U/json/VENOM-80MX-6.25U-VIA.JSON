@@ -55,6 +55,50 @@
       ]
     },
     {
+      "label": "FEATURE",
+      "content": [
+        {
+          "label": "SOCD",
+          "content": [
+            {
+              "label": "KEY BIND 1",
+              "type": "toggle",
+              "content": ["id_qmk_kill_switch_enable_lr", 10, 1]
+            },            
+            {
+              "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
+              "label": "- KEY 1",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_left", 10, 2]
+            },
+            {
+              "showIf": "{id_qmk_kill_switch_enable_lr} == 1",
+              "label": "- KEY 2",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_right", 10, 3]
+            },
+            {
+              "label": "KEY BIND 2",
+              "type": "toggle",
+              "content": ["id_qmk_kill_switch_enable_ud", 11, 1]
+            },            
+            {
+              "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
+              "label": "- KEY 1",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_up", 11, 2]
+            },
+            {
+              "showIf": "{id_qmk_kill_switch_enable_ud} == 1",
+              "label": "- KEY 2",
+              "type": "keycode",
+              "content": ["id_qmk_kill_switch_down", 11, 3]
+            }            
+          ]
+        }      
+      ]
+    },    
+    {
       "label": "SYSTEM",
       "content": [
         {
