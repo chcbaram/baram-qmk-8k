@@ -47,7 +47,10 @@ bool hwInit(void)
   #ifdef _USE_HW_WS2812
   ws2812Init();
   #endif
-  
+  #ifdef _USE_HW_ENCODER
+  encoderInit();
+  #endif
+
   cdcInit();
   usbInit();
   #if HW_USB_CMP
