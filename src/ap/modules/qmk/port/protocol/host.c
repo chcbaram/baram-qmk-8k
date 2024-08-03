@@ -86,7 +86,7 @@ void host_keyboard_send(report_keyboard_t *report)
 
   usbHidSendReport((uint8_t *)report, sizeof(report_keyboard_t));
 
-  #if 0
+  #ifdef KEY_SEND_DEBUG
   static uint32_t pre_time = 0;
   static uint32_t exe_time = 0;
 

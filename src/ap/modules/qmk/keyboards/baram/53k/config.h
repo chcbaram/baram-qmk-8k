@@ -29,6 +29,7 @@
 
 #define DEBUG_MATRIX_SCAN_RATE
 #define GRAVE_ESC_ENABLE
+// #define KEY_SEND_DEBUG
 
 
 // RGB LIGHT : set(RGBLIGHT_ENABLE true)
