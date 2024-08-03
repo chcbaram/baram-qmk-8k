@@ -160,12 +160,6 @@ bool kill_switch_process(uint16_t keycode, keyrecord_t *record)
   return true;
 }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record)
-{
-  kill_switch_process(keycode, record);
-  return true;
-}
-
 void via_qmk_kill_swtich_command(uint8_t type, uint8_t *data, uint8_t length)
 {
   // data = [ command_id, channel_id, value_id, value_data ]

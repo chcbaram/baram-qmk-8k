@@ -26,6 +26,8 @@
 
 #define DEBOUNCE                    20
 
+
 #define DEBUG_MATRIX_SCAN_RATE
 #define GRAVE_ESC_ENABLE
 #define KILL_SWITCH_ENABLE
+#define KKUK_ENABLE
