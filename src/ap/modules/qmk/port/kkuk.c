@@ -2,9 +2,15 @@
 
 #ifdef KKUK_ENABLE
 
+
+#define KKUK_TIME_UNIT      10
+
+
+
 enum via_qmk_kill_switch_value {
     id_qmk_kkuk_enable      = 1,
-    id_qmk_kkuk_repeat_time = 2,
+    id_qmk_kkuk_delay_time  = 2,
+    id_qmk_kkuk_repeat_time = 3,
 };
 
 
@@ -14,9 +20,10 @@ typedef union
 
   struct PACKED
   {
-    uint8_t  enable;
-    uint8_t  mode;
-    uint16_t repeat_time;
+    uint8_t  enable : 2;
+    uint8_t  mode   : 6;
+    uint8_t  repeat_time;
+    uint8_t  delay_time;
   };
 
 } kkuk_config_t;
@@ -35,8 +42,10 @@ EECONFIG_DEBOUNCE_HELPER(kkuk,   EECONFIG_USER_KKUK,   kkuk_config);
 
 
 static bool is_req_repeqt = false;
+static bool is_kkuk_mode = false;
 
 static uint32_t pre_time;
+static uint32_t pre_time_delay;
 static uint8_t key_cnt = 0;
 static report_keyboard_t last_report;
 
@@ -47,9 +56,10 @@ void kkuk_init(void)
   eeconfig_init_kkuk();
   if (kkuk_config.mode != 1)
   {
-    kkuk_config.mode = 1;
-    kkuk_config.enable = false;
-    kkuk_config.repeat_time = 50;
+    kkuk_config.mode        = 1;
+    kkuk_config.enable      = false;
+    kkuk_config.delay_time  = 200;
+    kkuk_config.repeat_time = 80;
     eeconfig_flush_kkuk(true);
   }
 
@@ -65,8 +75,10 @@ void kkuk_idle(void)
     KEY_ST_REPEAT
   };
 
-  static uint8_t state = KEY_ST_IDLE;
-  static uint8_t pre_cnt = 0;
+  static uint8_t  state = KEY_ST_IDLE;
+  static uint8_t  pre_cnt = 0;
+  static uint16_t delay_time;
+  static uint16_t repeat_time;
 
 
   if (!kkuk_config.enable)
@@ -74,18 +86,41 @@ void kkuk_idle(void)
     return;
   }
 
-  if (millis()-pre_time >= kkuk_config.repeat_time)
+  delay_time  = kkuk_config.delay_time;
+  repeat_time = kkuk_config.repeat_time / 2;
+
+  if (!is_kkuk_mode)
+  {
+    if (key_cnt >= 2  && millis()-pre_time_delay >= delay_time)
+    {
+      is_kkuk_mode = true;
+      pre_time = millis() + 10;
+    }
+  }
+  else
+  {
+    if (key_cnt == 0)
+    {
+      is_kkuk_mode = false;
+    }
+  }
+
+  if (millis()-pre_time >= repeat_time)
   {
     pre_time = millis();
 
-    if (key_cnt >= 2)
+    if (is_kkuk_mode)
     {
-      is_req_repeqt = true;
-    }   
-    if (key_cnt == 1 && pre_cnt == 2)
-    {
-      is_req_repeqt = true;
+      if (key_cnt >= 2)
+      {
+        is_req_repeqt = true;
+      }   
+      if (key_cnt == 1 && pre_cnt == 2)
+      {
+        is_req_repeqt = true;
+      }
     }
+    
     pre_cnt = key_cnt;
 
 
@@ -139,7 +174,7 @@ bool kkuk_process(uint16_t keycode, keyrecord_t *record)
     {
       key_cnt = key_cnt > 0 ? (key_cnt - 1):(key_cnt + 0);
     }
-    pre_time = millis();
+    pre_time_delay = millis();
   }
   // cliPrintf("cnt %d\n", key_cnt);
   return true;
@@ -190,9 +225,14 @@ void via_qmk_kkuk_get_value(uint8_t *data)
         value_data[0] = kkuk_config.enable;
         break;
       }    
+    case id_qmk_kkuk_delay_time:
+      {
+        value_data[0] = kkuk_config.delay_time / KKUK_TIME_UNIT;
+        break;
+      }         
     case id_qmk_kkuk_repeat_time:
       {
-        value_data[0] = kkuk_config.repeat_time;
+        value_data[0] = kkuk_config.repeat_time / KKUK_TIME_UNIT;
         break;
       }
   }
@@ -211,9 +251,14 @@ void via_qmk_kkuk_set_value(uint8_t *data)
         kkuk_config.enable = value_data[0];
         break;
       }
+    case id_qmk_kkuk_delay_time:
+      {
+        kkuk_config.delay_time = value_data[0] * KKUK_TIME_UNIT;
+        break;
+      }      
     case id_qmk_kkuk_repeat_time:
       {
-        kkuk_config.repeat_time = value_data[0];
+        kkuk_config.repeat_time = value_data[0] * KKUK_TIME_UNIT;
         break;
       }
   }

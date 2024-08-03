@@ -9,6 +9,7 @@
 
 // hw_def.h
 //
+// #define _USE_HW_VCOM
 #define _USE_HW_WS2812
 #define     HW_WS2812_MAX_CH        1
 
@@ -27,6 +28,7 @@
 #define DEBOUNCE                    20
 
 
+// #define DEBUG_KEY_SEND
 #define DEBUG_MATRIX_SCAN_RATE
 #define GRAVE_ESC_ENABLE
 #define KILL_SWITCH_ENABLE
