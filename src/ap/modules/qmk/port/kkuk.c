@@ -122,6 +122,13 @@ bool kkuk_process(uint16_t keycode, keyrecord_t *record)
     return true;
   }
 
+#ifdef KILL_SWITCH_ENABLE
+  if (kill_switch_is_use(keycode))
+  {
+    return true;
+  }
+#endif
+
   if (IS_BASIC_KEYCODE(keycode))
   {
     if (record->event.pressed)
