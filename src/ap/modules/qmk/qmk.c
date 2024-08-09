@@ -3,7 +3,7 @@
 
 
 static void cliQmk(cli_args_t *args);
-static void suspend_task(void);
+static void idle_task(void);
 
 static bool is_suspended = false;
 
@@ -30,21 +30,35 @@ bool qmkInit(void)
   return true;
 }
 
+void qmkUpdate(void)
+{
+  keyboard_task();
+  eeprom_task();
+  idle_task();
+}
+
 void keyboard_post_init_user(void)
 {
 #ifdef KILL_SWITCH_ENABLE
   kill_switch_init();
 #endif
+#ifdef KKUK_ENABLE
+  kkuk_init();
+#endif
 }
 
-void qmkUpdate(void)
+bool process_record_user(uint16_t keycode, keyrecord_t *record)
 {
-  keyboard_task();
-  eeprom_task();
-  suspend_task();
+#ifdef KILL_SWITCH_ENABLE
+  kill_switch_process(keycode, record);
+#endif
+#ifdef KKUK_ENABLE
+  kkuk_process(keycode, record);
+#endif
+  return true;
 }
 
-void suspend_task(void)
+void idle_task(void)
 {
   bool is_suspended_cur;
 
@@ -63,6 +77,9 @@ void suspend_task(void)
     is_suspended = is_suspended_cur;
   }
 
+#ifdef KKUK_ENABLE
+  kkuk_idle();
+#endif
 }
 
 void cliQmk(cli_args_t *args)

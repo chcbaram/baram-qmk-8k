@@ -13,6 +13,9 @@
 #define _USE_HW_WS2812
 #define     HW_WS2812_MAX_CH        53
 
+#define _USE_HW_ENCODER
+#define      HW_ENCODER_MAX_CH      1
+
 
 // eeprom
 //
@@ -29,6 +32,7 @@
 
 #define DEBUG_MATRIX_SCAN_RATE
 #define GRAVE_ESC_ENABLE
+// #define KKUK_ENABLE
 // #define KEY_SEND_DEBUG
 
 

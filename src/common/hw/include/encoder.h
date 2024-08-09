@@ -16,7 +16,9 @@ bool encoderInit(void);
 bool encoderReset(void);
 
 bool encoderClearCount(uint8_t ch);
+bool encoderSetCount(uint8_t ch, int32_t count);
 int32_t encoderGetCount(uint8_t ch);
+
 
 
 #endif

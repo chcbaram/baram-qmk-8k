@@ -160,10 +160,37 @@ bool kill_switch_process(uint16_t keycode, keyrecord_t *record)
   return true;
 }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record)
+bool kill_switch_is_use(uint16_t keycode)
 {
-  kill_switch_process(keycode, record);
-  return true;
+  bool ret = false;
+  static kill_switch_config_t *p_cfg_lr = &kill_switch_config[KILL_SWITCH_LR];
+  static kill_switch_config_t *p_cfg_ud = &kill_switch_config[KILL_SWITCH_UD];
+
+
+  if (p_cfg_lr->enable)
+  {
+    if (keycode == p_cfg_lr->keycode[0])
+    {
+      ret = true;
+    }
+    if (keycode == p_cfg_lr->keycode[1])
+    {
+      ret = true;
+    }
+  }
+  if (p_cfg_ud->enable)
+  {
+    if (keycode == p_cfg_ud->keycode[0])
+    {
+      ret = true;
+    }
+    if (keycode == p_cfg_ud->keycode[1])
+    {
+      ret = true;
+    }
+  }
+
+  return ret;
 }
 
 void via_qmk_kill_swtich_command(uint8_t type, uint8_t *data, uint8_t length)
