@@ -95,7 +95,46 @@
               "content": ["id_qmk_kill_switch_down", 11, 3]
             }            
           ]
-        }      
+        },
+        {
+          "label": "Anti-Ghosting",
+          "content": [
+            {
+              "label": "Enable",
+              "type": "toggle",
+              "content": ["id_qmk_kkuk_enable", 12, 1]
+            },            
+            {
+              "showIf": "{id_qmk_kkuk_enable} == 1",
+              "label": "First Delay Time",
+              "type": "dropdown",
+              "options": [
+                ["50 ms",  5],
+                ["100 ms", 10],
+                ["150 ms", 15],
+                ["200 ms", 20],
+                ["250 ms", 25],
+                ["300 ms", 30]
+              ],
+              "content": ["id_qmk_kkuk_delay_time", 12, 2]
+            },
+            {
+              "showIf": "{id_qmk_kkuk_enable} == 1",
+              "label": "Repeat Time",
+              "type": "dropdown",
+              "options": [
+                ["50 ms",   5],
+                ["60 ms",   6],
+                ["70 ms",   7],
+                ["80 ms",   8],
+                ["90 ms",   9],
+                ["100 ms", 10],
+                ["200 ms", 20]
+              ],
+              "content": ["id_qmk_kkuk_repeat_time", 12, 3]
+            }
+          ]
+        }              
       ]
     },    
     {
