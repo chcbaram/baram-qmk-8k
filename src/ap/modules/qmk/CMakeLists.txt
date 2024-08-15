@@ -7,14 +7,11 @@ if (EXISTS "${QMK_KEYBOARD_PATH}/config.cmake")
   include ("${QMK_KEYBOARD_PATH}/config.cmake")
 endif()
 
-
-
 if (RGBLIGHT_ENABLE)
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/rgblight/rgblight.c")
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/process_keycode/process_rgb.c")
   list(APPEND QMK_ADD_FILES "${QMK_KEYBOARD_PATH}/driver/rgblight_drivers.c")
 endif()  
-
 
 
 # 지정한 폴더에 있는 파일만 포함한다.
@@ -44,8 +41,11 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c
   ${QMK_ROOT_PATH}/quantum/logging/*.c
-  ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
+  # ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
   # ${QMK_ROOT_PATH}/quantum/debounce/asym_eager_defer_pk.c
+  ${QMK_ROOT_PATH}/quantum/debounce/${DEBOUNCE_TYPE}.c
+  
+
   ${QMK_ROOT_PATH}/quantum/send_string/*.c
   ${QMK_ROOT_PATH}/quantum/process_keycode/process_key_override.c
   ${QMK_ROOT_PATH}/quantum/process_keycode/process_grave_esc.c
