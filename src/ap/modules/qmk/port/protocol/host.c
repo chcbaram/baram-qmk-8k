@@ -157,36 +157,61 @@ void host_mouse_send(report_mouse_t *report) {
 }
 
 void host_system_send(uint16_t usage) {
-    if (usage == last_system_usage) return;
-    last_system_usage = usage;
+  if (usage == last_system_usage) return;
+  last_system_usage = usage;
 
-    if (!driver) return;
+  report_extra_t report = {
+    .report_id = REPORT_ID_SYSTEM,
+    .usage     = usage,
+  };
 
-    report_extra_t report = {
-        .report_id = REPORT_ID_SYSTEM,
-        .usage     = usage,
-    };
-    (*driver->send_extra)(&report);
+  usbHidSendReportEXK((uint8_t *)&report, sizeof(report_extra_t));
+
+#ifdef DEBUG_KEY_SEND
+  static uint32_t pre_time = 0;
+  static uint32_t exe_time = 0;
+
+  exe_time = micros() - pre_time;
+  pre_time = micros();
+
+  cliPrintf("report exk(sys) : %04X %03d.%03d ms\n",
+            usage,
+            exe_time / 1000,
+            exe_time % 1000);
+#endif
 }
 
 void host_consumer_send(uint16_t usage) {
-    if (usage == last_consumer_usage) return;
-    last_consumer_usage = usage;
+  if (usage == last_consumer_usage) return;
+  last_consumer_usage = usage;
 
 #ifdef BLUETOOTH_ENABLE
-    if (where_to_send() == OUTPUT_BLUETOOTH) {
-        bluetooth_send_consumer(usage);
-        return;
-    }
+  if (where_to_send() == OUTPUT_BLUETOOTH)
+  {
+    bluetooth_send_consumer(usage);
+    return;
+  }
 #endif
 
-    if (!driver) return;
+  report_extra_t report = {
+    .report_id = REPORT_ID_CONSUMER,
+    .usage     = usage,
+  };
 
-    report_extra_t report = {
-        .report_id = REPORT_ID_CONSUMER,
-        .usage     = usage,
-    };
-    (*driver->send_extra)(&report);
+  usbHidSendReportEXK((uint8_t *)&report, sizeof(report_extra_t));
+
+#ifdef DEBUG_KEY_SEND
+  static uint32_t pre_time = 0;
+  static uint32_t exe_time = 0;
+
+  exe_time = micros() - pre_time;
+  pre_time = micros();
+
+  cliPrintf("report exk(csr) : %04X %03d.%03d ms\n",
+            usage,
+            exe_time / 1000,
+            exe_time % 1000);
+#endif  
 }
 
 #ifdef JOYSTICK_ENABLE

@@ -33,7 +33,9 @@ static USBD_DescriptorsTypeDef *p_desc = NULL;
 static uint8_t hid_ep_tbl[] = {
   HID_EPIN_ADDR, 
   HID_VIA_EP_IN, 
-  HID_VIA_EP_OUT};
+  HID_VIA_EP_OUT,
+  HID_EXK_EP_IN,
+  };
 
 static uint8_t cdc_ep_tbl[] = {
   CDC_IN_EP, 
