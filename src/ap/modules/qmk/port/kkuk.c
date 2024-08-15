@@ -71,7 +71,6 @@ void kkuk_idle(void)
   enum
   {
     KEY_ST_IDLE,
-    KEY_ST_CLEAR,
     KEY_ST_REPEAT
   };
 
@@ -87,7 +86,7 @@ void kkuk_idle(void)
   }
 
   delay_time  = kkuk_config.delay_time;
-  repeat_time = kkuk_config.repeat_time / 2;
+  repeat_time = kkuk_config.repeat_time;
 
   if (!is_kkuk_mode)
   {
@@ -127,24 +126,18 @@ void kkuk_idle(void)
     if (is_req_repeqt && state == KEY_ST_IDLE)
     {
       is_req_repeqt = false;
-      state = KEY_ST_CLEAR;
+      state = KEY_ST_REPEAT;
     }
 
     switch(state)
     {
-      case KEY_ST_CLEAR:        
+      case KEY_ST_REPEAT:        
         memcpy(&last_report, keyboard_report, sizeof(report_keyboard_t));
         clear_keys();
         send_keyboard_report();
         memcpy(keyboard_report, &last_report, sizeof(report_keyboard_t));
-        state = KEY_ST_REPEAT;
-        // cliPrintf("CLEAR\n");
-        break;
-
-      case KEY_ST_REPEAT:
         send_keyboard_report();
         state = KEY_ST_IDLE;
-        // cliPrintf("REPEAT\n");
         break;
     }
   }
