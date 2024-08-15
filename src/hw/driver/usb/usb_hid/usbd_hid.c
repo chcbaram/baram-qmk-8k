@@ -47,6 +47,7 @@
 #include "log.h"
 #include "keys.h"
 #include "qbuffer.h"
+#include "report.h"
 
 
 #if HW_USB_LOG == 1
@@ -105,6 +106,12 @@ typedef struct
   uint8_t  buf[32];
 } via_report_info_t;
 
+typedef struct
+{
+  uint8_t len;
+  uint8_t buf[HID_EXK_EP_SIZE];
+} exk_report_info_t;
+
 static USBD_SetupReqTypedef ep0_req;
 static uint8_t ep0_req_buf[USB_MAX_EP0_SIZE];
 
@@ -116,9 +123,14 @@ __ALIGN_BEGIN static uint8_t via_hid_usb_report[32] __ALIGN_END;
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 
-static qbuffer_t     report_q;
-static report_info_t report_buf[128];
+static qbuffer_t              report_q;
+static report_info_t          report_buf[128];
 __ALIGN_BEGIN  static uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
+
+static qbuffer_t              report_exk_q;
+static exk_report_info_t      report_exk_buf[128];
+__ALIGN_BEGIN  static uint8_t hid_buf_exk[HID_EXK_EP_SIZE] __ALIGN_END = {0,};
+
 
 
 USBD_ClassTypeDef USBD_HID =
@@ -158,7 +170,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   USB_DESC_TYPE_CONFIGURATION,                        /* bDescriptorType: Configuration */
   USB_HID_CONFIG_DESC_SIZ,                            /* wTotalLength: Bytes returned */
   0x00,
-  0x02,                                               /* bNumInterfaces: 2 interface */
+  0x03,                                               /* bNumInterfaces: 3 interface */
   0x01,                                               /* bConfigurationValue: Configuration value */
   0x00,                                               /* iConfiguration: Index of string descriptor
                                                          describing the configuration */
@@ -247,6 +259,43 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,
   4,                                                  /* bInterval: Polling Interval */
   /* 66 */
+
+
+  /*---------------------------------------------------------------------------*/
+  /* EXK interface descriptor */
+  0x09,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_INTERFACE,                            /* bDescriptorType: */
+  0x02,                                               /* bInterfaceNumber: Number of Interface */
+  0x00,                                               /* bAlternateSetting: Alternate setting */
+  0x01,                                               /* bNumEndpoints: One endpoint used */
+  0x03,                                               /* bInterfaceClass: HID */
+  0x01,                                               /* bInterfaceSubClass : 1=BOOT, 0=no boot */
+  0x00,                                               /* nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse */
+  0x00,                                               /* iInterface */
+
+  /******************** Descriptor of EXK ********************/
+  /* 75 */
+  0x09,                                               /* bLength: HID Descriptor size */
+  HID_DESCRIPTOR_TYPE,                                /* bDescriptorType: HID */
+  0x11,                                               /* bcdHID: HID Class Spec release number */
+  0x01,
+  0x00,                                               /* bCountryCode: Hardware target country */
+  0x01,                                               /* bNumDescriptors: Number of HID class descriptors to follow */
+  0x22,                                               /* bDescriptorType */
+  HID_EXK_REPORT_DESC_SIZE,                           /* wItemLength: Total length of Report descriptor */
+  0x00,
+
+  /******************** Descriptor of EXK endpoint ********************/
+  /* 86 */
+  0x07,                                               /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
+  HID_EXK_EP_IN,                                      /* bEndpointAddress: Endpoint Address (IN) */
+  USBD_EP_TYPE_INTR,                                  /* bmAttributes: Interrupt endpoint */
+  HID_EXK_EP_SIZE,                                    /* wMaxPacketSize: */
+  0x00,
+  HID_HS_BINTERVAL,                                   /* bInterval: Polling Interval */
+  /* 93 */
+
 };
 #endif /* USE_USBD_COMPOSITE  */
 
@@ -385,6 +434,36 @@ __ALIGN_BEGIN static uint8_t HID_VIA_ReportDesc[HID_KEYBOARD_VIA_REPORT_DESC_SIZ
   0xC0              // End Collection
 };
 
+__ALIGN_BEGIN static uint8_t HID_EXK_ReportDesc[HID_EXK_REPORT_DESC_SIZE] __ALIGN_END =
+{
+  //
+  0x05, 0x01,               // Usage Page (Generic Desktop)
+  0x09, 0x80,               // Usage (System Control)
+  0xA1, 0x01,               // Collection (Application)
+  0x85, REPORT_ID_SYSTEM,   //   Report ID
+  0x19, 0x01,               //   Usage Minimum (Pointer)
+  0x2A, 0xB7, 0x00,         //   Usage Maximum (System Display LCD Autoscale)
+  0x15, 0x01,               //   Logical Minimum
+  0x26, 0xB7, 0x00,         //   Logical Maximum
+  0x95, 0x01,               //   Report Count (1)
+  0x75, 0x10,               //   Report Size (16)
+  0x81, 0x00,               //   Input (Data, Array, Absolute)
+  0xC0,                     // End Collection
+
+  0x05, 0x0C,               // Usage Page (Consumer)
+  0x09, 0x01,               // Usage (Consumer Control)
+  0xA1, 0x01,               // Collection (Application)
+  0x85, REPORT_ID_CONSUMER, //   Report ID
+  0x19, 0x01,               //   Usage Minimum (Consumer Control)
+  0x2A, 0xA0, 0x02,         //   Usage Maximum (AC Desktop Show All Applications)
+  0x15, 0x01,               //   Logical Minimum
+  0x26, 0xA0, 0x02,         //   Logical Maximum
+  0x95, 0x01,               //   Report Count (1)
+  0x75, 0x10,               //   Report Size (16)
+  0x81, 0x00,               //   Input (Data, Array, Absolute)
+  0xC0                      // End Collection
+};
+
 static USBD_HID_HandleTypeDef *p_hhid = NULL;
 static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
 extern USBD_HandleTypeDef USBD_Device;
@@ -429,7 +508,8 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   pdev->ep_in[HIDInEpAdd & 0xFU].is_used = 1U;
 
 
-
+  // VIA EP
+  //
   pdev->ep_in[HID_VIA_EP_IN & 0xFU].bInterval = pdev->dev_speed == USBD_SPEED_HIGH ? HID_HS_BINTERVAL:HID_FS_BINTERVAL;
   (void)USBD_LL_OpenEP(pdev, HID_VIA_EP_IN, USBD_EP_TYPE_INTR, HID_VIA_EP_SIZE);
   pdev->ep_in[HID_VIA_EP_IN & 0xFU].is_used = 1U;
@@ -437,6 +517,12 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   pdev->ep_in[HID_VIA_EP_OUT & 0xFU].bInterval = pdev->dev_speed == USBD_SPEED_HIGH ? HID_HS_BINTERVAL:HID_FS_BINTERVAL;
   (void)USBD_LL_OpenEP(pdev, HID_VIA_EP_OUT, USBD_EP_TYPE_INTR, HID_VIA_EP_SIZE);
   pdev->ep_in[HID_VIA_EP_OUT & 0xFU].is_used = 1U;
+
+  // EXK EP
+  //
+  pdev->ep_in[HID_EXK_EP_IN & 0xFU].bInterval = pdev->dev_speed == USBD_SPEED_HIGH ? HID_HS_BINTERVAL:HID_FS_BINTERVAL;
+  (void)USBD_LL_OpenEP(pdev, HID_EXK_EP_IN, USBD_EP_TYPE_INTR, HID_EXK_EP_SIZE);
+  pdev->ep_in[HID_EXK_EP_IN & 0xFU].is_used = 1U;
 
 
   hhid->state = USBD_HID_IDLE;
@@ -452,6 +538,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
     qbufferCreateBySize(&via_report_q, (uint8_t *)via_report_q_buf, sizeof(via_report_info_t), 128); 
+    qbufferCreateBySize(&report_exk_q, (uint8_t *)report_exk_buf, sizeof(report_info_t), 128); 
 
     logPrintf("[OK] USB Hid\n");
     logPrintf("     Keyboard\n");
@@ -584,6 +671,11 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
                 pbuf = HID_VIA_ReportDesc;
                 break;
 
+              case 2:
+                len = MIN(HID_EXK_REPORT_DESC_SIZE, req->wLength);
+                pbuf = HID_EXK_ReportDesc;
+                break;
+
               default:
                 len = MIN(HID_KEYBOARD_REPORT_DESC_SIZE, req->wLength);
                 pbuf = HID_KEYBOARD_ReportDesc;
@@ -700,6 +792,35 @@ bool USBD_HID_SendReport(uint8_t *report, uint16_t len)
       ret = true;
       p_hhid->state = USBD_HID_BUSY;
       (void)USBD_LL_Transmit(pdev, HID_EPIN_ADDR, report, len);
+    }
+  }
+
+  return ret;
+}
+
+/**
+  * @brief  USBD_HID_SendReportEXK
+  *         Send HID Report
+  * @param  buff: pointer to report
+  * @retval status
+  */
+bool USBD_HID_SendReportEXK(uint8_t *report, uint16_t len)
+{
+  USBD_HandleTypeDef *pdev = &USBD_Device;
+  bool ret = false;
+
+  if (p_hhid == NULL)
+  {
+    return false;
+  }
+
+  if (pdev->dev_state == USBD_STATE_CONFIGURED)
+  {
+    if (p_hhid->state == USBD_HID_IDLE)
+    {
+      ret = true;
+      p_hhid->state = USBD_HID_BUSY;
+      (void)USBD_LL_Transmit(pdev, HID_EXK_EP_IN, report, len);
     }
   }
 
@@ -976,6 +1097,31 @@ bool usbHidSendReport(uint8_t *p_data, uint16_t length)
   return true;
 }
 
+bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length)
+{
+  exk_report_info_t report_info;
+
+  if (length > HID_EXK_EP_SIZE)
+    return false;
+
+  if (!USBD_is_suspended())
+  {
+    memcpy(hid_buf_exk, p_data, length);
+    if (!USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, length))
+    {
+      report_info.len = length;
+      memcpy(report_info.buf, p_data, length);
+      qbufferWrite(&report_exk_q, (uint8_t *)&report_info, 1);        
+    }    
+  }
+  else
+  {
+    usbHidUpdateWakeUp(&USBD_Device);
+  }
+  
+  return true;
+}
+
 void usbHidMeasurePollRate(void)
 {
   static uint32_t cnt = 0; 
@@ -1179,6 +1325,20 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
       rate_time_pre = micros();
     }
   }
+
+  if (qbufferAvailable(&report_exk_q) > 0)
+  {
+    if (p_hhid->state == USBD_HID_IDLE)
+    {
+      exk_report_info_t report_info;
+
+      qbufferRead(&report_exk_q, (uint8_t *)&report_info, 1);
+
+      memcpy(hid_buf_exk, report_info.buf, report_info.len);
+      USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, report_info.len);
+    }
+  }
+
   return;
 }
 

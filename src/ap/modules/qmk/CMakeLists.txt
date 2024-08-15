@@ -85,6 +85,7 @@ add_compile_definitions(RAW_ENABLE)
 add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
 add_compile_definitions(KEY_OVERRIDE_ENABLE)
 add_compile_definitions(HOLD_ON_OTHER_KEY_PRESS)
+add_compile_definitions(EXTRAKEY_ENABLE)
 
 
 add_compile_definitions(QMK_KEYBOARD_H="quantum.h")
