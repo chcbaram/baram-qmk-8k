@@ -286,7 +286,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   0x00,
 
   /******************** Descriptor of EXK endpoint ********************/
-  /* 86 */
+  /* 84 */
   0x07,                                               /* bLength: Endpoint Descriptor size */
   USB_DESC_TYPE_ENDPOINT,                             /* bDescriptorType:*/
   HID_EXK_EP_IN,                                      /* bEndpointAddress: Endpoint Address (IN) */
@@ -294,7 +294,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_CfgDesc[USB_HID_CONFIG_DESC_SIZ] __ALIGN_E
   HID_EXK_EP_SIZE,                                    /* wMaxPacketSize: */
   0x00,
   HID_HS_BINTERVAL,                                   /* bInterval: Polling Interval */
-  /* 93 */
+  /* 91 */
 
 };
 #endif /* USE_USBD_COMPOSITE  */
