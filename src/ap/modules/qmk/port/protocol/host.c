@@ -104,36 +104,21 @@ void host_keyboard_send(report_keyboard_t *report)
             exe_time/1000,
             exe_time%1000);
   #endif
-
-  if (!driver) return;
-#ifdef KEYBOARD_SHARED_EP
-  report->report_id = REPORT_ID_KEYBOARD;
-#endif
-  (*driver->send_keyboard)(report);
-
-  if (debug_keyboard)
-  {
-    dprintf("keyboard_report: %02X | ", report->mods);
-    for (uint8_t i = 0; i < KEYBOARD_REPORT_KEYS; i++)
-    {
-      dprintf("%02X ", report->keys[i]);
-    }
-    dprint("\n");
-  }
 }
 
 void host_nkro_send(report_nkro_t *report) {
-    if (!driver) return;
-    report->report_id = REPORT_ID_NKRO;
-    (*driver->send_nkro)(report);
+  report->report_id = REPORT_ID_NKRO;
 
-    if (debug_keyboard) {
-        dprintf("nkro_report: %02X | ", report->mods);
-        for (uint8_t i = 0; i < NKRO_REPORT_BITS; i++) {
-            dprintf("%02X ", report->bits[i]);
-        }
-        dprint("\n");
-    }
+  usbHidSendReportEXK((uint8_t *)&report, sizeof(report_nkro_t));
+
+#ifdef DEBUG_KEY_SEND
+  cliPrintf("nkro_report: %02X | ", report->mods);
+  for (uint8_t i = 0; i < NKRO_REPORT_BITS; i++)
+  {
+    cliPrintf("%02X ", report->bits[i]);
+  }
+  cliPrintf("\n");
+#endif
 }
 
 void host_mouse_send(report_mouse_t *report) {

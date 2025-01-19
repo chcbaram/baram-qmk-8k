@@ -7,7 +7,7 @@
 #include QMK_KEYMAP_CONFIG_H
 
 
-#define _DEF_FIRMWATRE_VERSION    "V241019R1"
+#define _DEF_FIRMWATRE_VERSION    "V250119R1"
 #define _DEF_BOARD_NAME           "BARAM-QMK-8K-FW"
 
 
@@ -49,7 +49,7 @@
 #define      HW_USB_MSC             0
 #define      HW_USB_HID             1
 #else
-#define      HW_USB_LOG             0
+#define      HW_USB_LOG             1
 #define      HW_USB_CMP             0
 #define      HW_USB_CDC             0
 #define      HW_USB_MSC             0

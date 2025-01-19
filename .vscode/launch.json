@@ -45,9 +45,9 @@
       "type": "cortex-debug",
       "showDevDebugOutput": "none",      
       "servertype": "stlink",
-      "osx": {
-        "serverpath": "/Applications/STMicroelectronics/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.macos64_2.0.400.202209281104/tools/bin/ST-LINK_gdbserver"
-      },
+      // "osx": {
+      //   "serverpath": "/Applications/STMicroelectronics/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.macos64_2.0.400.202209281104/tools/bin/ST-LINK_gdbserver"
+      // },
       "runToEntryPoint": "main",  
       "overrideRestartCommands": [
         "load"
