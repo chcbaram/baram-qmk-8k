@@ -28,6 +28,7 @@
   button:hover{ border-color:var(--accent); }
   button.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
   button:disabled{ opacity:.45; cursor:not-allowed; }
+  #langBtn{ padding:7px 11px; font-size:12px; font-weight:700; min-width:44px; }
   .dot{ width:9px; height:9px; border-radius:50%; background:#666; display:inline-block; }
   .dot.on{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
   .wrap{ max-width:1080px; margin:0 auto; padding:22px; }
@@ -72,6 +73,16 @@
   .err{ color:var(--warn); }
   .legend{ display:flex; gap:16px; font-size:12px; color:var(--dim); align-items:center; }
   .legend i{ width:13px; height:13px; border-radius:4px; display:inline-block; vertical-align:-2px; margin-right:5px; }
+  .rel-meta{ font-size:12px; color:var(--dim); margin:2px 0 12px; }
+  .rel-notes{ white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.55;
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+    max-height:340px; overflow:auto; }
+  .dl-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .dl{ display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid var(--line);
+    border-radius:10px; background:var(--panel2); text-decoration:none; color:var(--txt); font-weight:600; }
+  .dl:hover{ border-color:var(--accent); }
+  .dl .ic{ color:var(--accent); }
+  .dl .sz{ margin-left:auto; font-size:12px; color:var(--dim); font-weight:500; }
   footer{ text-align:center; color:var(--dim); font-size:12px; padding:24px; }
   code{ background:var(--panel2); padding:1px 6px; border-radius:5px; font-size:12px; }
 </style>
@@ -80,50 +91,52 @@
 <header>
   <h1>VENOM MX <span>Keyboard Manager</span></h1>
   <div class="spacer"></div>
+  <button id="langBtn" title="Language">EN</button>
   <span class="dot" id="dot"></span>
-  <span class="msg" id="status">연결 안 됨</span>
-  <button class="primary" id="connectBtn">연결</button>
-  <button id="disconnectBtn" disabled>해제</button>
+  <span class="msg" id="status"></span>
+  <button class="primary" id="connectBtn" data-i18n="connect">연결</button>
+  <button id="disconnectBtn" data-i18n="disconnect" disabled>해제</button>
 </header>
 
 <div class="wrap">
   <div id="notsupported" class="card" style="display:none; margin-bottom:20px;">
-    <h3 class="err">이 브라우저는 WebHID를 지원하지 않습니다</h3>
-    <div class="hint">Chrome 또는 Edge(데스크톱)에서 열어주세요. (VIA와 동일한 요구사항)</div>
+    <h3 class="err" data-i18n="noWebHIDTitle">이 브라우저는 WebHID를 지원하지 않습니다</h3>
+    <div class="hint" data-i18n="noWebHIDHint">Chrome 또는 Edge(데스크톱)에서 열어주세요.</div>
   </div>
 
   <div class="infobar">
-    <div class="info"><div class="k">모델</div><div class="v" id="iModel">—</div></div>
-    <div class="info"><div class="k">펌웨어 버전</div><div class="v small" id="iVer">—</div></div>
-    <div class="info"><div class="k">디바운스 타입</div>
+    <div class="info"><div class="k" data-i18n="model">모델</div><div class="v" id="iModel">—</div></div>
+    <div class="info"><div class="k" data-i18n="fwVer">펌웨어 버전</div><div class="v small" id="iVer">—</div></div>
+    <div class="info"><div class="k" data-i18n="dbType">디바운스 타입</div>
       <select class="sel" id="selType" disabled>
         <option value="0">GAMING</option>
         <option value="1">TYPING</option>
       </select></div>
-    <div class="info"><div class="k">디바운스 시간</div>
+    <div class="info"><div class="k" data-i18n="dbTime">디바운스 시간</div>
       <select class="sel" id="selTime" disabled></select></div>
-    <div class="info"><div class="k">매트릭스</div><div class="v small" id="iMatrix">—</div></div>
+    <div class="info"><div class="k" data-i18n="matrix">매트릭스</div><div class="v small" id="iMatrix">—</div></div>
   </div>
 
   <div class="tabs">
-    <button class="tab active" data-tab="latency">레이턴시</button>
-    <button class="tab" data-tab="tester">키 테스터</button>
+    <button class="tab active" data-tab="latency" data-i18n="tabLatency">레이턴시</button>
+    <button class="tab" data-tab="tester" data-i18n="tabTester">키 테스터</button>
+    <button class="tab" data-tab="firmware" data-i18n="tabFirmware">펌웨어</button>
   </div>
 
   <!-- LATENCY -->
   <div class="panel active" id="panel-latency">
     <div class="stats">
-      <div class="stat"><div class="lbl">현재 (누름→USB)</div><div class="big"><span id="lCur">—</span><small>ms</small></div>
-        <div class="sub">디바운스 포함 실제 입력 지연</div></div>
-      <div class="stat"><div class="lbl">평균</div><div class="big"><span id="lAvg">—</span><small>ms</small></div>
-        <div class="sub">샘플 <span id="lCnt">0</span>개</div></div>
-      <div class="stat"><div class="lbl">최소</div><div class="big"><span id="lMin">—</span><small>ms</small></div></div>
-      <div class="stat"><div class="lbl">최대</div><div class="big"><span id="lMax">—</span><small>ms</small></div></div>
+      <div class="stat"><div class="lbl" data-i18n="latCur">현재 (누름→USB)</div><div class="big"><span id="lCur">—</span><small>ms</small></div>
+        <div class="sub" data-i18n="latCurSub">디바운스 포함 실제 입력 지연</div></div>
+      <div class="stat"><div class="lbl" data-i18n="latAvg">평균</div><div class="big"><span id="lAvg">—</span><small>ms</small></div>
+        <div class="sub" id="subSamples"></div></div>
+      <div class="stat"><div class="lbl" data-i18n="latMin">최소</div><div class="big"><span id="lMin">—</span><small>ms</small></div></div>
+      <div class="stat"><div class="lbl" data-i18n="latMax">최대</div><div class="big"><span id="lMax">—</span><small>ms</small></div></div>
     </div>
     <div class="card">
       <div class="row" style="justify-content:space-between; margin-bottom:6px;">
-        <div><h3>지연 분포 히스토그램</h3><div class="hint">키를 여러 번 눌러 샘플을 모으세요 (누름→USB, 디바운스 포함, ms)</div></div>
-        <button id="resetLat">초기화</button>
+        <div><h3 data-i18n="histTitle">지연 분포 히스토그램</h3><div class="hint" data-i18n="histHint">키를 여러 번 눌러 샘플을 모으세요</div></div>
+        <button id="resetLat" data-i18n="reset">초기화</button>
       </div>
       <canvas id="hist" height="240"></canvas>
     </div>
@@ -133,18 +146,30 @@
   <div class="panel" id="panel-tester">
     <div class="row" style="justify-content:space-between;">
       <div class="legend">
-        <span><i style="background:var(--press)"></i>눌림</span>
-        <span><i style="background:var(--tested)"></i>테스트됨</span>
-        <span>눌린 키 <b id="pressCnt">0</b> · 테스트됨 <b id="testedCnt">0</b>/<b id="totalCnt">0</b></span>
+        <span><i style="background:var(--press)"></i><span data-i18n="pressed">눌림</span></span>
+        <span><i style="background:var(--tested)"></i><span data-i18n="tested">테스트됨</span></span>
+        <span id="pressLine"></span>
       </div>
-      <button id="resetTester">테스트 초기화</button>
+      <button id="resetTester" data-i18n="resetTest">테스트 초기화</button>
     </div>
     <div class="card">
-      <div class="kbwrap"><div class="kb" id="kb"><div class="msg" style="padding:20px">연결하면 키 배열이 표시됩니다.</div></div></div>
+      <div class="kbwrap"><div class="kb" id="kb"><div class="msg" data-i18n="testerHint" style="padding:20px">연결하면 키 배열이 표시됩니다.</div></div></div>
     </div>
   </div>
 
-  <footer>
+  <!-- FIRMWARE DOWNLOAD (연결 불필요) -->
+  <div class="panel" id="panel-firmware">
+    <div class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:6px;">
+        <div><h3 data-i18n="fwTitle">펌웨어 다운로드</h3>
+          <div class="hint" data-i18n="fwHint">GitHub 릴리즈에서 원하는 버전을 받습니다. 연결 불필요.</div></div>
+        <select class="sel" id="relSelect" style="max-width:280px" disabled></select>
+      </div>
+      <div id="relBody"></div>
+    </div>
+  </div>
+
+  <footer data-i18n="footer">
     VIA와 동일한 raw HID(0xFF60) 채널 사용 · 지원 모델: VENOM 60MX / 80MX (6.25U / 7U)
   </footer>
 </div>
@@ -168,6 +193,73 @@ const VIA_SET_VALUE = 0x07, VIA_SAVE = 0x09;
 const CH_DEBOUNCE = 13, DBV_TYPE = 1, DBV_TIME = 2;
 const DB_TIME_MIN = 5, DB_TIME_MAX = 40, DB_TIME_STEP = 5;
 const LAT_MAX_US = 45000;   // 45ms 초과 샘플은 통계에서 제외
+// 이 패턴의 zip 에셋이 있는 릴리즈만 다운로드 목록에 노출 (구버전/비호환 릴리즈 제외)
+const REL_ASSET_RE = /^VENOM-.*\.zip$/i;
+
+// ---- i18n ----
+const I18N = {
+  ko: {
+    connect:"연결", disconnect:"해제", notConnected:"연결 안 됨", connected:"연결됨",
+    prevFound:"이전 장치 발견 — '연결'을 눌러 재연결", errPrefix:"오류: ", setFail:"설정 실패: ",
+    noWebHIDTitle:"이 브라우저는 WebHID를 지원하지 않습니다",
+    noWebHIDHint:"Chrome 또는 Edge(데스크톱)에서 열어주세요. (VIA와 동일한 요구사항)",
+    model:"모델", fwVer:"펌웨어 버전", dbType:"디바운스 타입", dbTime:"디바운스 시간", matrix:"매트릭스",
+    tabLatency:"레이턴시", tabTester:"키 테스터", tabFirmware:"펌웨어",
+    latCur:"현재 (누름→USB)", latCurSub:"디바운스 포함 실제 입력 지연",
+    latAvg:"평균", latMin:"최소", latMax:"최대",
+    histTitle:"지연 분포 히스토그램", histHint:"키를 여러 번 눌러 샘플을 모으세요 (누름→USB, 디바운스 포함, ms)",
+    reset:"초기화", pressed:"눌림", tested:"테스트됨", resetTest:"테스트 초기화",
+    testerHint:"연결하면 키 배열이 표시됩니다.",
+    fwTitle:"펌웨어 다운로드",
+    fwHint:"GitHub 릴리즈에서 원하는 버전(4개 보드 uf2 + VIA JSON)을 받습니다. 연결 불필요.",
+    relLoading:"릴리즈 목록을 불러오는 중…", relNone:"아직 등록된 펌웨어 릴리즈가 없습니다.",
+    relFail:"릴리즈를 불러오지 못했습니다: ", relOpen:"GitHub 릴리즈 페이지 열기 ↗",
+    relNoNotes:"변경사항이 없습니다.", relView:"GitHub에서 보기 ↗",
+    footer:"VIA와 동일한 raw HID(0xFF60) 채널 사용 · 지원 모델: VENOM 60MX / 80MX (6.25U / 7U)",
+    samples:(n)=>`샘플 ${n}개`,
+    pressLine:(p,t,tot)=>`눌린 키 ${p} · 테스트됨 ${t}/${tot}`,
+  },
+  en: {
+    connect:"Connect", disconnect:"Disconnect", notConnected:"Not connected", connected:"Connected",
+    prevFound:"Previous device found — click Connect to reconnect", errPrefix:"Error: ", setFail:"Setting failed: ",
+    noWebHIDTitle:"This browser does not support WebHID",
+    noWebHIDHint:"Please open in Chrome or Edge (desktop). (Same requirement as VIA)",
+    model:"Model", fwVer:"Firmware", dbType:"Debounce Type", dbTime:"Debounce Time", matrix:"Matrix",
+    tabLatency:"Latency", tabTester:"Key Tester", tabFirmware:"Firmware",
+    latCur:"Current (press→USB)", latCurSub:"Real latency incl. debounce",
+    latAvg:"Average", latMin:"Min", latMax:"Max",
+    histTitle:"Latency Histogram", histHint:"Press keys repeatedly to collect samples (press→USB, incl. debounce, ms)",
+    reset:"Reset", pressed:"Pressed", tested:"Tested", resetTest:"Reset Test",
+    testerHint:"Connect to show the key layout.",
+    fwTitle:"Firmware Download",
+    fwHint:"Download a version (4 boards' uf2 + VIA JSON) from GitHub Releases. No connection needed.",
+    relLoading:"Loading releases…", relNone:"No firmware releases published yet.",
+    relFail:"Failed to load releases: ", relOpen:"Open GitHub Releases page ↗",
+    relNoNotes:"No changelog.", relView:"View on GitHub ↗",
+    footer:"Uses the same raw HID (0xFF60) channel as VIA · Supported: VENOM 60MX / 80MX (6.25U / 7U)",
+    samples:(n)=>`${n} samples`,
+    pressLine:(p,t,tot)=>`Pressed ${p} · Tested ${t}/${tot}`,
+  }
+};
+let lang = "ko";
+let curStatus = { key:"notConnected", on:false, extra:"" };
+function t(key, ...args){
+  let v = (I18N[lang] && I18N[lang][key] != null) ? I18N[lang][key]
+        : (I18N.ko[key] != null ? I18N.ko[key] : key);
+  return (typeof v === "function") ? v(...args) : v;
+}
+function applyLang(l){
+  lang = (l === "en") ? "en" : "ko";
+  try { localStorage.setItem("venom_lang", lang); } catch(_){}
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $("langBtn").textContent = (lang === "ko") ? "EN" : "한글";
+  // 동적 문자열 갱신
+  setStatus(curStatus.key, curStatus.on, curStatus.extra);
+  $("subSamples").textContent = t("samples", samples.length);
+  updatePressLine();
+  refreshFirmwarePanel();
+}
 
 // ---- 상태 ----
 let device = null;
@@ -181,6 +273,7 @@ let matrixRows = 0, matrixCols = 0;
 let lastSeq = -1;
 let samples = [];             // raw_us 샘플
 const testedSet = new Set();  // "r,c" 테스트된 키
+let pressCount = 0;           // 현재 눌린 키 수
 
 const $ = (id) => document.getElementById(id);
 const ms = (us) => (us/1000).toFixed(2);   // µs -> ms 문자열
@@ -252,7 +345,7 @@ async function connect(){
     const devices = await navigator.hid.requestDevice({ filters });
     if (!devices.length) return;
     await openDevice(devices[0]);
-  }catch(err){ setStatus("오류: " + err.message, false); }
+  }catch(err){ setStatus("errPrefix", false, err.message); }
 }
 
 async function openDevice(dev){
@@ -264,7 +357,7 @@ async function openDevice(dev){
   const pid = device.productId;
   const model = VENOM[pid] || (device.productName || "").trim() || "Unknown";
   $("iModel").textContent = model;
-  setStatus("연결됨", true);
+  setStatus("connected", true);
   $("connectBtn").disabled = true;
   $("disconnectBtn").disabled = false;
 
@@ -286,15 +379,16 @@ function teardown(){
   pumping = false;
   if (device){ device.removeEventListener("inputreport", onInputReport); }
   device = null;
-  setStatus("연결 안 됨", false);
+  setStatus("notConnected", false);
   $("connectBtn").disabled = false;
   $("disconnectBtn").disabled = true;
   $("selType").disabled = true;
   $("selTime").disabled = true;
 }
 
-function setStatus(t, on){
-  $("status").textContent = t;
+function setStatus(key, on, extra){
+  curStatus = { key, on:!!on, extra:extra||"" };
+  $("status").textContent = t(key) + (extra || "");
   $("dot").classList.toggle("on", !!on);
 }
 
@@ -360,8 +454,7 @@ function renderKeyboard(){
     el.dataset.key = k.row + "," + k.col;
     kb.appendChild(el);
   }
-  $("totalCnt").textContent = layoutKeys.length;
-  updateTestedCount();
+  updatePressLine();
 }
 
 // ---- 폴링 루프 ----
@@ -408,16 +501,18 @@ async function pollMatrix(){
     el.classList.toggle("pressed", pressedNow.has(k));
     el.classList.toggle("tested", !pressedNow.has(k) && testedSet.has(k));
   }
-  $("pressCnt").textContent = anyPressed;
-  updateTestedCount();
+  pressCount = anyPressed;
+  updatePressLine();
 }
 
-function updateTestedCount(){ $("testedCnt").textContent = testedSet.size; }
+function updatePressLine(){
+  $("pressLine").textContent = t("pressLine", pressCount, testedSet.size, layoutKeys.length);
+}
 
 // ---- 레이턴시 UI + 히스토그램 ----
 function updateLatencyUI(cur){
   $("lCur").textContent = ms(cur);
-  $("lCnt").textContent = samples.length;
+  $("subSamples").textContent = t("samples", samples.length);
   if (samples.length){
     let sum=0, mn=Infinity, mx=0;
     for (const s of samples){ sum+=s; if(s<mn)mn=s; if(s>mx)mx=s; }
@@ -478,15 +573,107 @@ function drawHistogram(){
   }
 }
 
+// ---- 펌웨어 다운로드 (GitHub Releases) ----
+let releasesLoaded = false;
+let releases = [];
+let relState = "idle";    // idle|loading|none|fail|ok
+let relErr = "";
+let curRelIdx = 0;
+
+function ghRepo(){
+  // GitHub Pages(user.github.io/repo)에서 owner/repo 유도, 실패 시 fallback
+  try {
+    const host = location.hostname;                       // 예: chcbaram.github.io
+    const seg = location.pathname.split("/").filter(Boolean);
+    if (host.endsWith(".github.io") && seg.length)
+      return { owner: host.split(".")[0], repo: seg[0] };
+  } catch(_){}
+  return { owner: "chcbaram", repo: "baram-qmk-8k" };
+}
+
+function esc(s){ const d=document.createElement("div"); d.textContent = (s==null?"":String(s)); return d.innerHTML; }
+function fmtSize(n){
+  if (!n) return "";
+  if (n >= 1048576) return (n/1048576).toFixed(1) + " MB";
+  if (n >= 1024) return Math.round(n/1024) + " KB";
+  return n + " B";
+}
+function relEmpty(msg){
+  const { owner, repo } = ghRepo();
+  return '<div class="msg" style="padding:8px 2px">' + esc(msg) +
+    '<br><a class="dl" style="display:inline-flex;margin-top:12px" target="_blank" rel="noopener" href="https://github.com/' +
+    owner + '/' + repo + '/releases">' + esc(t("relOpen")) + '</a></div>';
+}
+
+function refreshFirmwarePanel(){
+  const body = $("relBody");
+  if (relState === "loading")   body.innerHTML = '<div class="msg" style="padding:8px 2px">' + esc(t("relLoading")) + '</div>';
+  else if (relState === "none") body.innerHTML = relEmpty(t("relNone"));
+  else if (relState === "fail") body.innerHTML = relEmpty(t("relFail") + relErr);
+  else if (relState === "ok")   renderRelease(curRelIdx);
+  else body.innerHTML = "";
+}
+
+async function loadReleases(){
+  if (releasesLoaded) return;
+  releasesLoaded = true;
+  relState = "loading"; refreshFirmwarePanel();
+  const { owner, repo } = ghRepo();
+  try {
+    const res = await fetch("https://api.github.com/repos/"+owner+"/"+repo+"/releases",
+      { headers: { "Accept": "application/vnd.github+json" } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const all = await res.json();
+    // 우리 zip 에셋(VENOM-*.zip)이 있는 릴리즈만 노출 (구버전/비호환 릴리즈 제외)
+    releases = (Array.isArray(all) ? all : [])
+      .filter(r => (r.assets || []).some(a => REL_ASSET_RE.test(a.name)));
+    if (releases.length === 0){ relState = "none"; refreshFirmwarePanel(); return; }
+    const sel = $("relSelect");
+    sel.innerHTML = "";
+    releases.forEach((r, i) => {
+      const o = document.createElement("option");
+      o.value = String(i);
+      const date = (r.published_at || "").slice(0,10);
+      o.textContent = (r.name || r.tag_name) + (date ? "  ·  " + date : "");
+      sel.appendChild(o);
+    });
+    sel.disabled = false; sel.value = "0"; curRelIdx = 0;
+    relState = "ok"; refreshFirmwarePanel();
+  } catch(err){
+    releasesLoaded = false;   // 재시도 허용
+    relErr = err.message; relState = "fail"; refreshFirmwarePanel();
+  }
+}
+
+function renderRelease(i){
+  const r = releases[i]; if (!r) return;
+  const date = (r.published_at || "").slice(0,10);
+  let html = '<div class="rel-meta">' + esc(r.tag_name || "") + (date ? " · " + date : "") +
+    ' · <a target="_blank" rel="noopener" href="' + esc(r.html_url) + '">' + esc(t("relView")) + '</a></div>';
+  html += '<div class="rel-notes">' +
+    (r.body && r.body.trim() ? esc(r.body.trim()) : esc(t("relNoNotes"))) + '</div>';
+  const assets = (r.assets || []).filter(a => REL_ASSET_RE.test(a.name));
+  html += '<div class="dl-list">';
+  for (const a of assets)
+    html += '<a class="dl" download href="' + esc(a.browser_download_url) + '">' +
+      '<span class="ic">⬇</span>' + esc(a.name) +
+      '<span class="sz">' + fmtSize(a.size) + '</span></a>';
+  html += '</div>';
+  $("relBody").innerHTML = html;
+}
+
+$("relSelect").addEventListener("change", () => { curRelIdx = parseInt($("relSelect").value); renderRelease(curRelIdx); });
+
 // ---- 탭 ----
-document.querySelectorAll(".tab").forEach(t => {
-  t.addEventListener("click", () => {
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    activeTab = t.dataset.tab;
+    tab.classList.add("active");
+    activeTab = tab.dataset.tab;
     $("panel-"+activeTab).classList.add("active");
     if (activeTab==="latency") drawHistogram();
+    if (activeTab==="firmware") loadReleases();
   });
 });
 
@@ -501,13 +688,13 @@ document.querySelectorAll(".tab").forEach(t => {
 })();
 
 $("selType").addEventListener("change", async () => {
-  const t = parseInt($("selType").value);
-  try { await setDebounceType(t); debType = t; clearSamples(); }   // 범위(0~5/0~40ms) 갱신
-  catch(e){ setStatus("설정 실패: " + e.message, true); }
+  const tv = parseInt($("selType").value);
+  try { await setDebounceType(tv); debType = tv; clearSamples(); }   // 범위(0~1/0~40ms) 갱신
+  catch(e){ setStatus("setFail", true, e.message); }
 });
 $("selTime").addEventListener("change", async () => {
   try { await setDebounceTime(parseInt($("selTime").value)); clearSamples(); }
-  catch(e){ setStatus("설정 실패: " + e.message, true); }
+  catch(e){ setStatus("setFail", true, e.message); }
 });
 
 $("connectBtn").addEventListener("click", connect);
@@ -517,13 +704,23 @@ function clearSamples(){
   // '신규'로 오인해 키를 안 눌러도 다시 기록되는 문제가 생긴다.
   samples = [];
   ["lCur","lAvg","lMin","lMax"].forEach(id=>$(id).textContent="—");
-  $("lCnt").textContent = "0";
+  $("subSamples").textContent = t("samples", 0);
   drawHistogram();
 }
 $("resetLat").addEventListener("click", clearSamples);
 $("resetTester").addEventListener("click", () => { testedSet.clear();
-  for (const el of $("kb").children){ if(el.classList) el.classList.remove("tested"); } updateTestedCount(); });
+  for (const el of $("kb").children){ if(el.classList) el.classList.remove("tested"); } updatePressLine(); });
 window.addEventListener("resize", () => { if (activeTab==="latency") drawHistogram(); });
+
+// ---- 언어 ----
+$("langBtn").addEventListener("click", () => applyLang(lang === "ko" ? "en" : "ko"));
+(function(){
+  let l = null;
+  try { l = localStorage.getItem("venom_lang"); } catch(_){}
+  if (l !== "ko" && l !== "en")
+    l = (navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en";
+  applyLang(l);
+})();
 
 // ---- 초기화 ----
 if (!("hid" in navigator)){
@@ -533,7 +730,7 @@ if (!("hid" in navigator)){
   // 이전에 권한을 준 VENOM 장치가 있으면 자동 재연결
   navigator.hid.getDevices().then(list => {
     const dev = list.find(d => d.vendorId===VENDOR_ID && VENOM[d.productId]);
-    if (dev){ setStatus("이전 장치 발견 — '연결'을 눌러 재연결", false); }
+    if (dev){ setStatus("prevFound", false); }
   }).catch(()=>{});
 }
 </script>

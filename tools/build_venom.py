@@ -129,6 +129,8 @@ def main():
     parser.add_argument("-r", "--rev", type=int, default=None,
                         help="통합 폴더 리비전 번호 직접 지정 "
                              "(미지정 시 자동 증가)")
+    parser.add_argument("--no-zip", action="store_true",
+                        help="릴리즈용 zip 생성 안 함")
     args = parser.parse_args()
 
     targets = args.keyboards if args.keyboards else VENOM_KEYBOARDS
@@ -187,8 +189,19 @@ def main():
         rel = os.path.relpath(path, output_dir)
         print("  - " + rel)
 
+    all_ok = all(v == "OK" for v in results.values())
+
+    # 릴리즈용 zip 생성 (GitHub Release 에 업로드 -> 웹 대시보드 '펌웨어' 탭에서 다운로드)
+    # 통째로 빌드해 전부 성공했을 때만 만든다.
+    if all_ok and not args.no_zip and set(targets) == set(VENOM_KEYBOARDS):
+        zip_path = shutil.make_archive(output_dir, "zip",
+                                       root_dir=OUTPUT_BASE_DIR,
+                                       base_dir=os.path.basename(output_dir))
+        print()
+        print("릴리즈 zip -> {}".format(os.path.relpath(zip_path, ROOT_DIR)))
+
     # 하나라도 실패하면 비정상 종료
-    return 1 if any(v != "OK" for v in results.values()) else 0
+    return 0 if all_ok else 1
 
 
 if __name__ == "__main__":

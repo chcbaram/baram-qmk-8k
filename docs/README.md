@@ -12,7 +12,22 @@ VENOM 키보드의 **키 입력 레이턴시 측정**과 **매트릭스(키) 테
   - (내부 전송은 µs, 표시는 ms)
 - **키 테스터**: 물리 키 배열을 그려 눌린 키/테스트된 키 하이라이트
   - 키 배열(레이아웃)은 펌웨어에 임베드되어 raw HID 로 전송되므로, 웹은 모델별 JSON이 필요 없음
+- **펌웨어 다운로드**(연결 불필요): GitHub 릴리즈에서 버전 선택 → 변경사항 확인 → zip 다운로드
 - **VENOM 모델만** 연결 목록에 표시 (VID 0x0483 + 지원 PID)
+- **한글/영어** 표시 언어 전환
+
+## 펌웨어 릴리즈 만들기 (다운로드 탭 노출용)
+1. `python3 tools/build_venom.py` 실행 → `output/VENOM-V<날짜>R<n>.zip` 생성
+   (4개 보드 uf2 + VIA JSON 포함)
+2. GitHub → **Releases → Draft a new release**
+   - Tag: 펌웨어 버전 (예 `V260710R1`)
+   - Attach: 위 zip 파일
+   - 본문: **변경사항**을 작성 (웹 '펌웨어' 탭에 그대로 표시됨)
+   - **Publish release**
+3. 게시 즉시 대시보드 **펌웨어** 탭의 버전 목록에 자동 노출됨.
+
+> '펌웨어' 탭은 GitHub Releases API(무인증)를 사용합니다. Release(에셋+본문)가 있어야
+> 목록에 뜨며, 태그만 있고 Release 가 없으면 표시되지 않습니다.
 
 ## 요구사항
 - **Chrome / Edge (데스크톱)** — WebHID 지원 브라우저 (VIA와 동일 제약, Firefox/Safari 불가)

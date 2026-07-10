@@ -35,7 +35,18 @@
       "type": "shell",
       "command": "tools/uf2/uf2conv.py build/baram-qmk-8k.bin --family 0xFFFF0001 --convert --output build/baram-qmk-8k.uf2",
       "problemMatcher": [],
-    }    
+    },
+
+    {
+      "label": "deploy-image",
+      "detail": "VENOM 4종 전체 빌드 + 릴리즈 zip 생성 (output/VENOM-V<날짜>R<n>.zip)",
+      "type": "shell",
+      "windows":{
+        "command": "python tools/build_venom.py -c",
+      },
+      "command": "python3 tools/build_venom.py -c",
+      "problemMatcher": [],
+    }
 
   ]
 }
