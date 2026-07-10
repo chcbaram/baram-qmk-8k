@@ -14,3 +14,4 @@ enum debounce_type
 void    debounce_set_type(uint8_t type);
 void    debounce_set_time(uint8_t ms);
 uint8_t debounce_time_get(void);   // stock 디바운스 파일이 카운터 로드에 사용
+uint8_t debounce_type_get(void);   // 현재 적용 중인 타입 (0=GAMING, 1=TYPING)

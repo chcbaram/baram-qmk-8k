@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VENOM MX Keyboard Manager</title>
+<style>
+  :root{
+    --bg:#0e0f13; --panel:#171922; --panel2:#1e212c; --line:#2a2e3a;
+    --txt:#e7e9ee; --dim:#9aa0ad; --accent:#c9738f; --accent2:#7cc4c0;
+    --ok:#57c877; --warn:#e0b64a; --press:#c9738f; --tested:#4a5a7a;
+    --radius:12px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#eceaf0; --panel:#fbfafc; --panel2:#f1eff5; --line:#dcd8e4;
+      --txt:#1b1c22; --dim:#6b6f7a; --tested:#c7cfe0; }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+    background:var(--bg); color:var(--txt); -webkit-font-smoothing:antialiased; }
+  header{ display:flex; align-items:center; gap:16px; padding:16px 22px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
+  header h1{ font-size:17px; margin:0; font-weight:650; letter-spacing:.2px; }
+  header h1 span{ color:var(--accent); }
+  .spacer{ flex:1; }
+  button{ font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--txt);
+    padding:9px 16px; border-radius:9px; transition:.15s; font-weight:550; }
+  button:hover{ border-color:var(--accent); }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#666; display:inline-block; }
+  .dot.on{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .wrap{ max-width:1080px; margin:0 auto; padding:22px; }
+  .infobar{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px; }
+  .info{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px; }
+  .info .k{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin-bottom:5px; }
+  .info .v{ font-size:16px; font-weight:650; }
+  .info .v.small{ font-size:14px; }
+  .badge{ display:inline-block; padding:2px 9px; border-radius:20px; font-size:12px; font-weight:650; }
+  .badge.gaming{ background:rgba(201,115,143,.18); color:var(--accent); }
+  .badge.typing{ background:rgba(124,196,192,.18); color:var(--accent2); }
+  .sel{ font:inherit; font-size:15px; font-weight:650; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:8px; padding:6px 8px; width:100%; cursor:pointer; }
+  .sel:hover:not(:disabled){ border-color:var(--accent); }
+  .sel:disabled{ opacity:.5; cursor:not-allowed; }
+  .tabs{ display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .tab{ padding:11px 18px; border:none; border-bottom:2px solid transparent; background:none; border-radius:0;
+    color:var(--dim); font-weight:600; }
+  .tab.active{ color:var(--txt); border-bottom-color:var(--accent); }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; margin-bottom:20px; }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; }
+  .stat .lbl{ font-size:12px; color:var(--dim); margin-bottom:8px; font-weight:600; }
+  .stat .big{ font-size:30px; font-weight:720; font-variant-numeric:tabular-nums; line-height:1; }
+  .stat .big small{ font-size:14px; color:var(--dim); font-weight:600; margin-left:3px; }
+  .stat .sub{ font-size:12px; color:var(--dim); margin-top:9px; font-variant-numeric:tabular-nums; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px; }
+  .card h3{ margin:0 0 4px; font-size:14px; }
+  .card .hint{ font-size:12px; color:var(--dim); margin-bottom:14px; }
+  canvas{ width:100%; display:block; }
+  .kbwrap{ overflow-x:auto; padding-bottom:8px; }
+  .kb{ position:relative; margin:0 auto; }
+  .key{ position:absolute; border:1px solid var(--line); border-radius:6px; background:var(--panel2);
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--dim);
+    font-variant-numeric:tabular-nums; transition:background .04s, color .04s; overflow:hidden; }
+  .key.tested{ background:var(--tested); color:var(--txt); }
+  .key.pressed{ background:var(--press); color:#fff; border-color:var(--press);
+    box-shadow:0 0 10px rgba(201,115,143,.6); }
+  .row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  .msg{ color:var(--dim); font-size:13px; }
+  .err{ color:var(--warn); }
+  .legend{ display:flex; gap:16px; font-size:12px; color:var(--dim); align-items:center; }
+  .legend i{ width:13px; height:13px; border-radius:4px; display:inline-block; vertical-align:-2px; margin-right:5px; }
+  footer{ text-align:center; color:var(--dim); font-size:12px; padding:24px; }
+  code{ background:var(--panel2); padding:1px 6px; border-radius:5px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>VENOM MX <span>Keyboard Manager</span></h1>
+  <div class="spacer"></div>
+  <span class="dot" id="dot"></span>
+  <span class="msg" id="status">연결 안 됨</span>
+  <button class="primary" id="connectBtn">연결</button>
+  <button id="disconnectBtn" disabled>해제</button>
+</header>
+
+<div class="wrap">
+  <div id="notsupported" class="card" style="display:none; margin-bottom:20px;">
+    <h3 class="err">이 브라우저는 WebHID를 지원하지 않습니다</h3>
+    <div class="hint">Chrome 또는 Edge(데스크톱)에서 열어주세요. (VIA와 동일한 요구사항)</div>
+  </div>
+
+  <div class="infobar">
+    <div class="info"><div class="k">모델</div><div class="v" id="iModel">—</div></div>
+    <div class="info"><div class="k">펌웨어 버전</div><div class="v small" id="iVer">—</div></div>
+    <div class="info"><div class="k">디바운스 타입</div>
+      <select class="sel" id="selType" disabled>
+        <option value="0">GAMING</option>
+        <option value="1">TYPING</option>
+      </select></div>
+    <div class="info"><div class="k">디바운스 시간</div>
+      <select class="sel" id="selTime" disabled></select></div>
+    <div class="info"><div class="k">매트릭스</div><div class="v small" id="iMatrix">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="latency">레이턴시</button>
+    <button class="tab" data-tab="tester">키 테스터</button>
+  </div>
+
+  <!-- LATENCY -->
+  <div class="panel active" id="panel-latency">
+    <div class="stats">
+      <div class="stat"><div class="lbl">현재 (누름→USB)</div><div class="big"><span id="lCur">—</span><small>ms</small></div>
+        <div class="sub">디바운스 포함 실제 입력 지연</div></div>
+      <div class="stat"><div class="lbl">평균</div><div class="big"><span id="lAvg">—</span><small>ms</small></div>
+        <div class="sub">샘플 <span id="lCnt">0</span>개</div></div>
+      <div class="stat"><div class="lbl">최소</div><div class="big"><span id="lMin">—</span><small>ms</small></div></div>
+      <div class="stat"><div class="lbl">최대</div><div class="big"><span id="lMax">—</span><small>ms</small></div></div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:6px;">
+        <div><h3>지연 분포 히스토그램</h3><div class="hint">키를 여러 번 눌러 샘플을 모으세요 (누름→USB, 디바운스 포함, ms)</div></div>
+        <button id="resetLat">초기화</button>
+      </div>
+      <canvas id="hist" height="240"></canvas>
+    </div>
+  </div>
+
+  <!-- TESTER -->
+  <div class="panel" id="panel-tester">
+    <div class="row" style="justify-content:space-between;">
+      <div class="legend">
+        <span><i style="background:var(--press)"></i>눌림</span>
+        <span><i style="background:var(--tested)"></i>테스트됨</span>
+        <span>눌린 키 <b id="pressCnt">0</b> · 테스트됨 <b id="testedCnt">0</b>/<b id="totalCnt">0</b></span>
+      </div>
+      <button id="resetTester">테스트 초기화</button>
+    </div>
+    <div class="card">
+      <div class="kbwrap"><div class="kb" id="kb"><div class="msg" style="padding:20px">연결하면 키 배열이 표시됩니다.</div></div></div>
+    </div>
+  </div>
+
+  <footer>
+    VIA와 동일한 raw HID(0xFF60) 채널 사용 · 지원 모델: VENOM 60MX / 80MX (6.25U / 7U)
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+// ---- 지원 VENOM 모델 (WebHID 필터: VENOM만 노출) ----
+const VENOM = {
+  0x5206: "VENOM-60MX-6.25U",
+  0x5204: "VENOM-60MX-7U",
+  0x5205: "VENOM-80MX-6.25U",
+  0x5207: "VENOM-80MX-7U",
+};
+const VENDOR_ID = 0x0483;
+const USAGE_PAGE = 0xFF60;
+const RAW_CMD = 0xB0;
+const SUB = { INFO:0x01, LATENCY:0x02, MATRIX:0x03, LAYOUT:0x04 };
+// VIA 표준 커스텀 명령 (디바운스 설정 변경/저장)
+const VIA_SET_VALUE = 0x07, VIA_SAVE = 0x09;
+const CH_DEBOUNCE = 13, DBV_TYPE = 1, DBV_TIME = 2;
+const DB_TIME_MIN = 5, DB_TIME_MAX = 40, DB_TIME_STEP = 5;
+
+// ---- 상태 ----
+let device = null;
+let waiters = [];
+let pumping = false;
+let activeTab = "latency";
+let debType = 0;   // 현재 디바운스 타입 (0=GAMING, 1=TYPING) — 히스토그램 범위 결정
+
+let layoutKeys = [];          // {x,y,w,h,row,col} (키유닛)
+let matrixRows = 0, matrixCols = 0;
+let lastSeq = -1;
+let samples = [];             // raw_us 샘플
+const testedSet = new Set();  // "r,c" 테스트된 키
+
+const $ = (id) => document.getElementById(id);
+const ms = (us) => (us/1000).toFixed(2);   // µs -> ms 문자열
+
+// ---- WebHID 요청/응답 ----
+function onInputReport(e){
+  const d = e.data;
+  if (d.byteLength < 1) return;
+  for (let i=0;i<waiters.length;i++){
+    if (waiters[i].match(d)){
+      const w = waiters.splice(i,1)[0];
+      clearTimeout(w.timer);
+      w.resolve(d);
+      return;
+    }
+  }
+}
+
+function sendRaw(out, match){
+  return new Promise((resolve, reject) => {
+    const w = { match, resolve, reject };
+    w.timer = setTimeout(() => {
+      const i = waiters.indexOf(w); if (i>=0) waiters.splice(i,1);
+      reject(new Error("timeout"));
+    }, 600);
+    waiters.push(w);
+    device.sendReport(0, out).catch(err => {
+      clearTimeout(w.timer);
+      const i = waiters.indexOf(w); if (i>=0) waiters.splice(i,1);
+      reject(err);
+    });
+  });
+}
+
+// 0xB0 커스텀 대시보드 명령 (data[0]=0xB0, data[1]=sub)
+function sendCmd(sub, payload){
+  payload = payload || [];
+  const out = new Uint8Array(32);
+  out[0] = RAW_CMD; out[1] = sub;
+  for (let i=0;i<payload.length;i++) out[2+i] = payload[i];
+  return sendRaw(out, d => d.getUint8(0)===RAW_CMD && d.getUint8(1)===sub);
+}
+
+// VIA 표준 명령 (data[0]=command_id, 이후 payload)
+function sendVia(cmd, payload){
+  payload = payload || [];
+  const out = new Uint8Array(32);
+  out[0] = cmd;
+  for (let i=0;i<payload.length;i++) out[1+i] = payload[i];
+  return sendRaw(out, d => d.getUint8(0)===cmd);
+}
+
+// 디바운스 설정 변경 + EEPROM 저장
+async function setDebounceType(t){
+  await sendVia(VIA_SET_VALUE, [CH_DEBOUNCE, DBV_TYPE, t]);
+  await sendVia(VIA_SAVE, [CH_DEBOUNCE]);
+}
+async function setDebounceTime(msVal){
+  await sendVia(VIA_SET_VALUE, [CH_DEBOUNCE, DBV_TIME, msVal]);
+  await sendVia(VIA_SAVE, [CH_DEBOUNCE]);
+}
+
+// ---- 연결 ----
+async function connect(){
+  try{
+    const filters = Object.keys(VENOM).map(pid => ({
+      vendorId: VENDOR_ID, productId: parseInt(pid), usagePage: USAGE_PAGE
+    }));
+    const devices = await navigator.hid.requestDevice({ filters });
+    if (!devices.length) return;
+    await openDevice(devices[0]);
+  }catch(err){ setStatus("오류: " + err.message, false); }
+}
+
+async function openDevice(dev){
+  device = dev;
+  if (!device.opened) await device.open();
+  device.addEventListener("inputreport", onInputReport);
+  navigator.hid.addEventListener("disconnect", onDisconnect);
+
+  const pid = device.productId;
+  const model = VENOM[pid] || (device.productName || "").trim() || "Unknown";
+  $("iModel").textContent = model;
+  setStatus("연결됨", true);
+  $("connectBtn").disabled = true;
+  $("disconnectBtn").disabled = false;
+
+  await loadInfo();
+  await loadLayout();
+  startPump();
+}
+
+function onDisconnect(e){
+  if (device && e.device === device) teardown();
+}
+async function disconnect(){
+  if (device){ try{ await device.close(); }catch(_){} }
+  teardown();
+}
+function teardown(){
+  pumping = false;
+  if (device){ device.removeEventListener("inputreport", onInputReport); }
+  device = null;
+  setStatus("연결 안 됨", false);
+  $("connectBtn").disabled = false;
+  $("disconnectBtn").disabled = true;
+  $("selType").disabled = true;
+  $("selTime").disabled = true;
+}
+
+function setStatus(t, on){
+  $("status").textContent = t;
+  $("dot").classList.toggle("on", !!on);
+}
+
+// ---- 정보 ----
+async function loadInfo(){
+  const d = await sendCmd(SUB.INFO);
+  const dtype = d.getUint8(3), dtime = d.getUint8(4);
+  matrixRows = d.getUint8(5); matrixCols = d.getUint8(6);
+
+  let ver = "";
+  for (let i=0;i<16;i++){ const c=d.getUint8(10+i); if(!c)break; ver+=String.fromCharCode(c); }
+  $("iVer").textContent = ver || "—";
+  $("iMatrix").textContent = matrixRows + " × " + matrixCols;
+
+  const selType = $("selType"), selTime = $("selTime");
+  if (dtype === 0xFF){
+    selType.disabled = true; selTime.disabled = true;   // 런타임 디바운스 미지원
+  } else {
+    debType = dtype;
+    selType.value = String(dtype);
+    selTime.value = String(dtime);
+    selType.disabled = false; selTime.disabled = false;
+  }
+}
+
+// ---- 레이아웃 (펌웨어에서 스트리밍) ----
+async function loadLayout(){
+  const d0 = await sendCmd(SUB.INFO);
+  const total = d0.getUint8(8) | (d0.getUint8(9) << 8);
+  const buf = new Uint8Array(total);
+  let off = 0;
+  while (off < total){
+    const d = await sendCmd(SUB.LAYOUT, [off & 0xFF, (off>>8) & 0xFF]);
+    const n = d.getUint8(4);
+    if (n === 0) break;
+    for (let i=0;i<n;i++) buf[off+i] = d.getUint8(5+i);
+    off += n;
+  }
+  layoutKeys = [];
+  for (let i=0; i+5 < buf.length; i+=6){
+    layoutKeys.push({ x:buf[i]/4, y:buf[i+1]/4, w:buf[i+2]/4, h:buf[i+3]/4, row:buf[i+4], col:buf[i+5] });
+  }
+  renderKeyboard();
+}
+
+function renderKeyboard(){
+  const kb = $("kb");
+  kb.innerHTML = "";
+  if (!layoutKeys.length){ kb.innerHTML = '<div class="msg" style="padding:20px">레이아웃 정보 없음</div>'; return; }
+  const U = 46, GAP = 3;
+  let maxX = 0, maxY = 0;
+  for (const k of layoutKeys){ maxX = Math.max(maxX, k.x+k.w); maxY = Math.max(maxY, k.y+k.h); }
+  kb.style.width = (maxX*U) + "px";
+  kb.style.height = (maxY*U) + "px";
+  for (const k of layoutKeys){
+    const el = document.createElement("div");
+    el.className = "key";
+    el.style.left = (k.x*U) + "px";
+    el.style.top = (k.y*U) + "px";
+    el.style.width = (k.w*U - GAP) + "px";
+    el.style.height = (k.h*U - GAP) + "px";
+    el.textContent = k.row + "," + k.col;
+    el.dataset.key = k.row + "," + k.col;
+    kb.appendChild(el);
+  }
+  $("totalCnt").textContent = layoutKeys.length;
+  updateTestedCount();
+}
+
+// ---- 폴링 루프 ----
+async function startPump(){
+  if (pumping) return;
+  pumping = true;
+  while (pumping && device){
+    try{
+      await pollLatency();
+      if (activeTab === "tester") await pollMatrix();
+    }catch(_){ /* timeout 등 무시 */ }
+    await new Promise(r => setTimeout(r, 12));
+  }
+}
+
+async function pollLatency(){
+  const d = await sendCmd(SUB.LATENCY);
+  if (d.getUint8(2) !== 1) return;
+  const seq = d.getUint8(3);
+  if (seq === lastSeq) return;
+  lastSeq = seq;
+  const raw = d.getUint8(4) | (d.getUint8(5)<<8);
+  samples.push(raw);
+  if (samples.length > 5000) samples.shift();
+  updateLatencyUI(raw);
+}
+
+async function pollMatrix(){
+  const d = await sendCmd(SUB.MATRIX);
+  const rows = d.getUint8(2);
+  let anyPressed = 0;
+  const keys = $("kb").children;
+  const pressedNow = new Set();
+  for (let r=0;r<rows;r++){
+    const val = d.getUint8(4+r*2) | (d.getUint8(5+r*2)<<8);
+    for (let c=0;c<matrixCols;c++){
+      if (val & (1<<c)){ pressedNow.add(r+","+c); anyPressed++; testedSet.add(r+","+c); }
+    }
+  }
+  for (const el of keys){
+    if (!el.dataset || !el.dataset.key) continue;
+    const k = el.dataset.key;
+    el.classList.toggle("pressed", pressedNow.has(k));
+    el.classList.toggle("tested", !pressedNow.has(k) && testedSet.has(k));
+  }
+  $("pressCnt").textContent = anyPressed;
+  updateTestedCount();
+}
+
+function updateTestedCount(){ $("testedCnt").textContent = testedSet.size; }
+
+// ---- 레이턴시 UI + 히스토그램 ----
+function updateLatencyUI(cur){
+  $("lCur").textContent = ms(cur);
+  $("lCnt").textContent = samples.length;
+  if (samples.length){
+    let sum=0, mn=Infinity, mx=0;
+    for (const s of samples){ sum+=s; if(s<mn)mn=s; if(s>mx)mx=s; }
+    $("lAvg").textContent = ms(Math.round(sum/samples.length));
+    $("lMin").textContent = ms(mn);
+    $("lMax").textContent = ms(mx);
+  }
+  drawHistogram();
+}
+
+function drawHistogram(){
+  const cv = $("hist");
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = 240;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const css = getComputedStyle(document.documentElement);
+  const cAcc = css.getPropertyValue("--accent").trim();
+  const cLine = css.getPropertyValue("--line").trim();
+  const cDim = css.getPropertyValue("--dim").trim();
+  ctx.clearRect(0,0,w,h);
+  if (samples.length < 1){ return; }
+
+  // 디바운스 타입에 따라 X축 범위/세분화 결정
+  //  GAMING(0): 0~1ms,  0.01ms 간격(100칸)
+  //  TYPING(1): 0~40ms, 0.25ms 간격(160칸)
+  const rng = (debType === 1)
+    ? { max:40000, nb:160, ticks:[0,10,20,30,40]          }
+    : { max:1000,  nb:100, ticks:[0,0.2,0.4,0.6,0.8,1.0]  };
+  const HMAX = rng.max, NB = rng.nb;
+  const bins = new Array(NB).fill(0);
+  for (const s of samples){
+    let b = Math.floor(s/HMAX*NB); if (b>=NB) b=NB-1; if(b<0)b=0;
+    bins[b]++;
+  }
+  let peak = 0; for (const b of bins) if (b>peak) peak=b;
+  const padL=44, padB=26, padT=10, padR=8;
+  const plotW = w-padL-padR, plotH = h-padB-padT;
+
+  // 축
+  ctx.strokeStyle = cLine; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+plotH); ctx.lineTo(padL+plotW, padT+plotH); ctx.stroke();
+  ctx.fillStyle = cDim; ctx.font = "11px sans-serif"; ctx.textAlign="right";
+  ctx.fillText(peak, padL-6, padT+8);
+  ctx.fillText("0", padL-6, padT+plotH);
+  ctx.textAlign="center";
+  for (const t of rng.ticks){
+    ctx.fillText(t+"ms", padL + (t*1000/HMAX)*plotW, h-8);
+  }
+
+  // 막대
+  const bw = plotW/NB;
+  ctx.fillStyle = cAcc;
+  for (let i=0;i<NB;i++){
+    const bh = peak? (bins[i]/peak*plotH) : 0;
+    ctx.fillRect(padL + i*bw + 0.5, padT+plotH-bh, bw-1, bh);
+  }
+}
+
+// ---- 탭 ----
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    activeTab = t.dataset.tab;
+    $("panel-"+activeTab).classList.add("active");
+    if (activeTab==="latency") drawHistogram();
+  });
+});
+
+// selTime 옵션 채우기 (5~40ms)
+(function(){
+  const sel = $("selTime");
+  for (let t=DB_TIME_MIN; t<=DB_TIME_MAX; t+=DB_TIME_STEP){
+    const o = document.createElement("option");
+    o.value = String(t); o.textContent = t + " ms";
+    sel.appendChild(o);
+  }
+})();
+
+$("selType").addEventListener("change", async () => {
+  const t = parseInt($("selType").value);
+  try { await setDebounceType(t); debType = t; clearSamples(); }   // 범위(0~5/0~40ms) 갱신
+  catch(e){ setStatus("설정 실패: " + e.message, true); }
+});
+$("selTime").addEventListener("change", async () => {
+  try { await setDebounceTime(parseInt($("selTime").value)); clearSamples(); }
+  catch(e){ setStatus("설정 실패: " + e.message, true); }
+});
+
+$("connectBtn").addEventListener("click", connect);
+$("disconnectBtn").addEventListener("click", disconnect);
+function clearSamples(){
+  samples = []; lastSeq = -1;
+  ["lCur","lAvg","lMin","lMax"].forEach(id=>$(id).textContent="—");
+  $("lCnt").textContent = "0";
+  drawHistogram();
+}
+$("resetLat").addEventListener("click", clearSamples);
+$("resetTester").addEventListener("click", () => { testedSet.clear();
+  for (const el of $("kb").children){ if(el.classList) el.classList.remove("tested"); } updateTestedCount(); });
+window.addEventListener("resize", () => { if (activeTab==="latency") drawHistogram(); });
+
+// ---- 초기화 ----
+if (!("hid" in navigator)){
+  $("notsupported").style.display = "block";
+  $("connectBtn").disabled = true;
+}else{
+  // 이전에 권한을 준 VENOM 장치가 있으면 자동 재연결
+  navigator.hid.getDevices().then(list => {
+    const dev = list.find(d => d.vendorId===VENDOR_ID && VENOM[d.productId]);
+    if (dev){ setStatus("이전 장치 발견 — '연결'을 눌러 재연결", false); }
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>

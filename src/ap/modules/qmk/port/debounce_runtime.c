@@ -36,6 +36,11 @@ uint8_t debounce_time_get(void)
   return g_debounce_time;
 }
 
+uint8_t debounce_type_get(void)
+{
+  return active_type;
+}
+
 
 // 두 알고리즘 모두 초기화한다. 이후 스위칭 시 재init/free 없이 디스패치만 바꾼다.
 void debounce_init(uint8_t num_rows)

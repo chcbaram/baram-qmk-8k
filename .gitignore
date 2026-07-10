@@ -13,3 +13,6 @@ build/
 build-*/
 output/
 .DS_Store
+
+# 자동 생성 (tools/gen_layout.py)
+layout_def.c

@@ -50,8 +50,14 @@ matrix_row_t matrix_get_row(uint8_t row)
 uint8_t matrix_scan(void)
 {
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
-  uint32_t pre_time;  
+  uint32_t pre_time;
   bool changed;
+
+  // 키별 raw 접점(물리적으로 눌린 순간) 시각. 디바운스 확정 시 해당 키의 접점
+  // 시각을 T0 로 사용해 디바운스 대기시간까지 포함한 실제 입력 지연을 측정한다.
+  // (단일 플래그 방식은 겹친 키 입력에서 두 번째 키가 0 으로 측정되는 문제가 있음)
+  static uint32_t     key_raw_time[MATRIX_ROWS][MATRIX_COLS] = {{0}};
+  static matrix_row_t prev_cooked[MATRIX_ROWS] = {0};
 
 
   pre_time = micros();
@@ -88,6 +94,17 @@ uint8_t matrix_scan(void)
   key_scan_time = micros() - pre_time;
 
 
+  // raw 변화한 키별로 접점 시각 기록 (memcpy 로 raw_matrix 갱신 전에 수행)
+  for (uint8_t r = 0; r < MATRIX_ROWS; r++)
+  {
+    matrix_row_t delta = curr_matrix[r] ^ raw_matrix[r];
+    for (uint8_t c = 0; c < MATRIX_COLS; c++)
+    {
+      if (delta & ((matrix_row_t)1 << c))
+        key_raw_time[r][c] = pre_time;
+    }
+  }
+
   changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
   if (changed)
   {
@@ -97,7 +114,31 @@ uint8_t matrix_scan(void)
   changed = debounce(raw_matrix, matrix, MATRIX_ROWS, changed);
   if (changed)
   {
-    usbHidSetTimeLog(0, pre_time);
+    // 디바운스 확정으로 새로 '눌린'(0->1) 키들 중 가장 이른 접점 시각(=최대 지연)을 T0 로.
+    // 동시(겹친) 입력이어도 각 키가 자기 접점 시각을 쓰므로 두 번째 키가 0 으로 새지 않는다.
+    // 릴리즈(1->0)는 지연 측정에서 제외한다.
+    uint32_t t0 = pre_time;
+    bool     found = false;
+
+    for (uint8_t r = 0; r < MATRIX_ROWS; r++)
+    {
+      matrix_row_t press = matrix[r] & ~prev_cooked[r];   // 새로 눌린 비트만
+      for (uint8_t c = 0; c < MATRIX_COLS; c++)
+      {
+        if (press & ((matrix_row_t)1 << c))
+        {
+          uint32_t kt = key_raw_time[r][c];
+          if (!found || (int32_t)(t0 - kt) > 0) { t0 = kt; found = true; }
+        }
+      }
+      prev_cooked[r] = matrix[r];
+    }
+
+    // 눌림이 있을 때만 측정 (릴리즈 전용 리포트는 펌웨어 필터가 무시)
+    if (found)
+    {
+      usbHidSetTimeLog(0, t0);
+    }
   }
   matrix_info();
 

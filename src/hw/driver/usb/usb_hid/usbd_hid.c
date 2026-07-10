@@ -953,6 +953,10 @@ static bool     key_time_raw_req = false;
 static uint32_t key_time_raw_pre;
 static uint32_t key_time_raw_log[KEY_TIME_LOG_MAX];
 static uint32_t key_time_pre_log[KEY_TIME_LOG_MAX];
+static uint32_t key_time_seq = 0;   // 실제 매트릭스 키 입력 측정마다 증가 (웹 신규 샘플 감지)
+static uint16_t key_time_last_raw = 0;  // 누름 -> USB 전송 (디바운스 포함 총 지연)
+static uint16_t key_time_last_pre = 0;  // 누름 -> 리포트 큐잉 (펌웨어 처리)
+static uint16_t key_time_last_usb = 0;  // 큐잉 -> USB 전송 (USB 구간)
 
 /**
   * @brief  USBD_HID_DataIn
@@ -1185,9 +1189,19 @@ void usbHidMeasureRateTime(void)
 
     if (key_time_raw_req)
     {
+      uint32_t raw_us = micros()-key_time_raw_pre;
+      uint32_t pre_us = key_time_pre-key_time_raw_pre;
+
       key_time_raw_req = false;
-      key_time_raw_log[key_time_idx] = micros()-key_time_raw_pre;
-      key_time_pre_log[key_time_idx] = key_time_pre-key_time_raw_pre;
+      key_time_raw_log[key_time_idx] = raw_us;
+      key_time_pre_log[key_time_idx] = pre_us;
+
+      // 실제 매트릭스 키 입력으로 발생한 리포트만 유효 샘플로 노출한다.
+      // (연결 시 초기 리포트 등 매트릭스와 무관한 전송은 제외 -> 잡음 0.05ms 방지)
+      key_time_last_raw = (raw_us > 0xFFFF) ? 0xFFFF : raw_us;
+      key_time_last_pre = (pre_us > 0xFFFF) ? 0xFFFF : pre_us;
+      key_time_last_usb = (key_time_end > 0xFFFF) ? 0xFFFF : key_time_end;
+      key_time_seq++;
     }
     else
     {
@@ -1199,7 +1213,7 @@ void usbHidMeasureRateTime(void)
     {
       key_time_cnt++;
     }
-  }  
+  }
 }
 
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
@@ -1208,6 +1222,20 @@ bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
   p_info->time_max = rate_time_max;
   p_info->time_min = rate_time_min;
   return true;
+}
+
+// 가장 최근에 측정된 키 입력 레이턴시(us)를 반환한다.
+//   raw_us : 스캔 확정 -> USB 실제 전송 (디바운스 제외 총 지연)
+//   pre_us : 스캔 확정 -> 리포트 큐잉 (펌웨어 처리)
+//   usb_us : 리포트 큐잉 -> USB 실제 전송 (USB 구간)
+//   seq    : 새 측정마다 증가하는 카운터 (신규 샘플 감지용)
+bool usbHidGetLatency(uint16_t *raw_us, uint16_t *pre_us, uint16_t *usb_us, uint32_t *seq)
+{
+  if (raw_us) *raw_us = key_time_last_raw;
+  if (pre_us) *pre_us = key_time_last_pre;
+  if (usb_us) *usb_us = key_time_last_usb;
+  if (seq)    *seq    = key_time_seq;
+  return (key_time_seq > 0);
 }
 
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us)

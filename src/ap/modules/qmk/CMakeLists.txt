@@ -7,6 +7,14 @@ if (EXISTS "${QMK_KEYBOARD_PATH}/config.cmake")
   include ("${QMK_KEYBOARD_PATH}/config.cmake")
 endif()
 
+# 웹 대시보드용 물리 레이아웃(port/layout_def.c)을 현재 보드의 VIA JSON 에서 자동 생성.
+# port/*.c 글롭보다 먼저 실행돼야 하므로 여기(configure 단계)에서 수행한다.
+# VIA JSON 이 없는 보드는 gen_layout.py 가 조용히 skip 한다.
+execute_process(
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/gen_layout.py --dir ${QMK_KEYBOARD_PATH}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 if (RGBLIGHT_ENABLE)
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/rgblight/rgblight.c")
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/process_keycode/process_rgb.c")
