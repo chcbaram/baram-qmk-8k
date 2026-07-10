@@ -167,6 +167,7 @@ const SUB = { INFO:0x01, LATENCY:0x02, MATRIX:0x03, LAYOUT:0x04 };
 const VIA_SET_VALUE = 0x07, VIA_SAVE = 0x09;
 const CH_DEBOUNCE = 13, DBV_TYPE = 1, DBV_TIME = 2;
 const DB_TIME_MIN = 5, DB_TIME_MAX = 40, DB_TIME_STEP = 5;
+const LAT_MAX_US = 45000;   // 45ms 초과 샘플은 통계에서 제외
 
 // ---- 상태 ----
 let device = null;
@@ -269,6 +270,8 @@ async function openDevice(dev){
 
   await loadInfo();
   await loadLayout();
+  // 연결 이전에 눌린 직전 샘플을 신규로 오인하지 않도록 seq 기준선 설정
+  try { const d = await sendCmd(SUB.LATENCY); lastSeq = d.getUint8(3); } catch(_){}
   startPump();
 }
 
@@ -381,6 +384,7 @@ async function pollLatency(){
   if (seq === lastSeq) return;
   lastSeq = seq;
   const raw = d.getUint8(4) | (d.getUint8(5)<<8);
+  if (raw > LAT_MAX_US) return;   // 40ms 초과는 통계/히스토그램에서 제외
   samples.push(raw);
   if (samples.length > 5000) samples.shift();
   updateLatencyUI(raw);
@@ -509,7 +513,9 @@ $("selTime").addEventListener("change", async () => {
 $("connectBtn").addEventListener("click", connect);
 $("disconnectBtn").addEventListener("click", disconnect);
 function clearSamples(){
-  samples = []; lastSeq = -1;
+  // lastSeq 는 유지한다. -1 로 리셋하면 펌웨어에 남아있는 직전 샘플을
+  // '신규'로 오인해 키를 안 눌러도 다시 기록되는 문제가 생긴다.
+  samples = [];
   ["lCur","lAvg","lMin","lMax"].forEach(id=>$(id).textContent="—");
   $("lCnt").textContent = "0";
   drawHistogram();
