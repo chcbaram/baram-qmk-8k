@@ -50,7 +50,7 @@ extern "C" {
 #define HID_VIA_EP_SIZE                                 32U
 
 #define HID_EXK_EP_IN                                   0x85U
-#define HID_EXK_EP_SIZE                                 8U
+#define HID_EXK_EP_SIZE                                 32U
 
 #define HID_KEYBOARD
 #define USB_HID_CONFIG_DESC_SIZ                         91U  
@@ -59,7 +59,7 @@ extern "C" {
 #define HID_MOUSE_REPORT_DESC_SIZE                      74U
 #define HID_KEYBOARD_REPORT_DESC_SIZE                   64U
 #define HID_KEYBOARD_VIA_REPORT_DESC_SIZE               34U
-#define HID_EXK_REPORT_DESC_SIZE                        50U
+#define HID_EXK_REPORT_DESC_SIZE                        104U
 
 #define HID_DESCRIPTOR_TYPE                             0x21U
 #define HID_REPORT_DESC                                 0x22U
@@ -165,6 +165,7 @@ typedef struct
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);
+bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t wheel);
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info);
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us);
 bool usbHidGetLatency(uint16_t *raw_us, uint16_t *pre_us, uint16_t *usb_us, uint32_t *seq);

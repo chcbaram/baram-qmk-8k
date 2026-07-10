@@ -461,6 +461,36 @@ __ALIGN_BEGIN static uint8_t HID_EXK_ReportDesc[HID_EXK_REPORT_DESC_SIZE] __ALIG
   0x95, 0x01,               //   Report Count (1)
   0x75, 0x10,               //   Report Size (16)
   0x81, 0x00,               //   Input (Data, Array, Absolute)
+  0xC0,                     // End Collection
+
+  /* ======= 마우스 기능 ======= */
+  0x05, 0x01,               // Usage Page (Generic Desktop Ctrls)
+  0x09, 0x02,               // Usage (Mouse)
+  0xA1, 0x01,               // Collection (Application)
+  0x85, REPORT_ID_MOUSE,    //   Report ID
+  0x09, 0x01,               //   Usage (Pointer)
+  0xA1, 0x00,               //   Collection (Physical)
+  0x05, 0x09,               //     Usage Page (Button)
+  0x19, 0x01,               //     Usage Minimum (0x01)
+  0x29, 0x05,               //     Usage Maximum (0x05)
+  0x15, 0x00,               //     Logical Minimum (0)
+  0x25, 0x01,               //     Logical Maximum (1)
+  0x95, 0x05,               //     Report Count (5)
+  0x75, 0x01,               //     Report Size (1)
+  0x81, 0x02,               //     Input (Data,Var,Abs)
+  0x95, 0x01,               //     Report Count (1)
+  0x75, 0x03,               //     Report Size (3) 패딩
+  0x81, 0x01,               //     Input (Const,Array,Abs)
+  0x05, 0x01,               //     Usage Page (Generic Desktop Ctrls)
+  0x09, 0x30,               //     Usage (X)
+  0x09, 0x31,               //     Usage (Y)
+  0x09, 0x38,               //     Usage (Wheel)
+  0x15, 0x81,               //     Logical Minimum (-127)
+  0x25, 0x7F,               //     Logical Maximum (127)
+  0x75, 0x08,               //     Report Size (8)
+  0x95, 0x03,               //     Report Count (3)
+  0x81, 0x06,               //     Input (Data,Var,Rel)
+  0xC0,                     //   End Collection
   0xC0                      // End Collection
 };
 
@@ -1122,8 +1152,21 @@ bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length)
   {
     usbHidUpdateWakeUp(&USBD_Device);
   }
-  
+
   return true;
+}
+
+bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t wheel)
+{
+  uint8_t buffer[5];
+
+  buffer[0] = REPORT_ID_MOUSE;   // enum 에 의해 자동으로 2 가 대입됨
+  buffer[1] = buttons;
+  buffer[2] = (uint8_t)x;
+  buffer[3] = (uint8_t)y;
+  buffer[4] = (uint8_t)wheel;
+
+  return usbHidSendReportEXK(buffer, 5);
 }
 
 void usbHidMeasurePollRate(void)

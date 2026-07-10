@@ -57,6 +57,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/eeconfig.c
   ${QMK_ROOT_PATH}/quantum/keymap_introspection.c
   ${QMK_ROOT_PATH}/quantum/color.c
+  ${QMK_ROOT_PATH}/quantum/mousekey.c
 
 
   ${QMK_ROOT_PATH}/quantum/sequencer/*.c
@@ -106,6 +107,10 @@ add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
 add_compile_definitions(KEY_OVERRIDE_ENABLE)
 add_compile_definitions(HOLD_ON_OTHER_KEY_PRESS)
 add_compile_definitions(EXTRAKEY_ENABLE)
+add_compile_definitions(MOUSEKEY_ENABLE)
+add_compile_definitions(MOUSE_ENABLE)
+add_compile_definitions(MOUSE_EXTENDED_REPORT)
+add_compile_definitions(MOUSE_SHARED_EP)
 
 
 add_compile_definitions(QMK_KEYBOARD_H="quantum.h")
