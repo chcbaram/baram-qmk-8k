@@ -58,6 +58,13 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length)
     return;
   }
 #endif
+#ifdef DEBOUNCE_RUNTIME
+  if (*channel_id == id_qmk_debounce)
+  {
+    via_qmk_debounce_command(data, length);
+    return;
+  }
+#endif
 
   // Return the unhandled state
   *command_id = id_unhandled;

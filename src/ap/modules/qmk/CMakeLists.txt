@@ -11,7 +11,19 @@ if (RGBLIGHT_ENABLE)
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/rgblight/rgblight.c")
   list(APPEND QMK_ADD_FILES "${QMK_ROOT_PATH}/quantum/process_keycode/process_rgb.c")
   list(APPEND QMK_ADD_FILES "${QMK_KEYBOARD_PATH}/driver/rgblight_drivers.c")
-endif()  
+endif()
+
+
+# 디바운스 타입을 런타임(VIA)에서 전환하려면 DEBOUNCE_RUNTIME 를 켠다.
+# 이 경우 stock 디바운스 파일을 직접 컴파일하지 않고(디스패처와 심볼 충돌 방지),
+# port/debounce_runtime.c 가 두 알고리즘을 감싸 런타임에 선택한다.
+# (런타임 파일들은 port/*.c 글롭으로 컴파일되며 내부에서 #ifdef DEBOUNCE_RUNTIME 로 보호됨)
+if (DEBOUNCE_RUNTIME)
+  add_compile_definitions(DEBOUNCE_RUNTIME)
+  set(DEBOUNCE_FILES "")
+else()
+  set(DEBOUNCE_FILES ${QMK_ROOT_PATH}/quantum/debounce/${DEBOUNCE_TYPE}.c)
+endif()
 
 
 # 지정한 폴더에 있는 파일만 포함한다.
@@ -43,7 +55,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/logging/*.c
   # ${QMK_ROOT_PATH}/quantum/debounce/sym_eager_pk.c
   # ${QMK_ROOT_PATH}/quantum/debounce/asym_eager_defer_pk.c
-  ${QMK_ROOT_PATH}/quantum/debounce/${DEBOUNCE_TYPE}.c
+  ${DEBOUNCE_FILES}
   
 
   ${QMK_ROOT_PATH}/quantum/send_string/*.c

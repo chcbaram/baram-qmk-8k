@@ -128,7 +128,11 @@ static void start_debounce_counters(matrix_row_t raw[], matrix_row_t cooked[], u
         for (uint8_t col = 0; col < MATRIX_COLS; col++) {
             if (delta & (ROW_SHIFTER << col)) {
                 if (*debounce_pointer == DEBOUNCE_ELAPSED) {
+#ifdef DEBOUNCE_RUNTIME
+                    *debounce_pointer    = debounce_time_get();
+#else
                     *debounce_pointer    = DEBOUNCE;
+#endif
                     counters_need_update = true;
                 }
             } else {

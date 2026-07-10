@@ -7,7 +7,7 @@
 #include QMK_KEYMAP_CONFIG_H
 
 
-#define _DEF_FIRMWATRE_VERSION    "V250119R1"
+#define _DEF_FIRMWATRE_VERSION    "V260710R1"
 #define _DEF_BOARD_NAME           "BARAM-QMK-8K-FW"
 
 

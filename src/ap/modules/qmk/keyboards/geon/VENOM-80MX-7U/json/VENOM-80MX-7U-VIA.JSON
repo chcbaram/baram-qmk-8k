@@ -134,7 +134,24 @@
               "content": ["id_qmk_kkuk_repeat_time", 12, 3]
             }
           ]
-        }              
+        },
+        {
+          "label": "Debounce",
+          "content": [
+            {
+              "label": "Type",
+              "type": "dropdown",
+              "options": [ ["GAMING", 0], ["TYPING", 1] ],
+              "content": ["id_qmk_debounce_type", 13, 1]
+            },
+            {
+              "label": "Time",
+              "type": "dropdown",
+              "options": [ ["5 ms",5], ["10 ms",10], ["15 ms",15], ["20 ms",20], ["25 ms",25], ["30 ms",30], ["35 ms",35], ["40 ms",40] ],
+              "content": ["id_qmk_debounce_time", 13, 2]
+            }
+          ]
+        }
       ]
     },    
     {

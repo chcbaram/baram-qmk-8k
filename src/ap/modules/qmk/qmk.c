@@ -45,6 +45,9 @@ void keyboard_post_init_user(void)
 #ifdef KKUK_ENABLE
   kkuk_init();
 #endif
+#ifdef DEBOUNCE_RUNTIME
+  debounce_cfg_init();
+#endif
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
