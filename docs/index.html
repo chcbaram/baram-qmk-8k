@@ -29,6 +29,11 @@
   button.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
   button:disabled{ opacity:.45; cursor:not-allowed; }
   #langBtn{ padding:7px 11px; font-size:12px; font-weight:700; min-width:44px; }
+  .via-link{ display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+    font-size:13px; font-weight:650; color:var(--accent); padding:8px 14px; border-radius:9px;
+    border:1px solid var(--accent); background:rgba(201,115,143,.09); transition:.15s; }
+  .via-link:hover{ background:var(--accent); color:#fff; box-shadow:0 3px 12px rgba(201,115,143,.35); }
+  .via-link .ext{ font-size:11px; opacity:.85; }
   .dot{ width:9px; height:9px; border-radius:50%; background:#666; display:inline-block; }
   .dot.on{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
   .wrap{ max-width:1080px; margin:0 auto; padding:22px; }
@@ -91,6 +96,8 @@
 <header>
   <h1>VENOM MX <span>Keyboard Manager</span></h1>
   <div class="spacer"></div>
+  <a class="via-link" href="https://www.usevia.app/" target="_blank" rel="noopener" title="VIA">
+    <span data-i18n="viaLink">VIA 설정</span><span class="ext">↗</span></a>
   <button id="langBtn" title="Language">EN</button>
   <span class="dot" id="dot"></span>
   <span class="msg" id="status"></span>
@@ -203,6 +210,7 @@ const I18N = {
     prevFound:"이전 장치 발견 — '연결'을 눌러 재연결", errPrefix:"오류: ", setFail:"설정 실패: ",
     noWebHIDTitle:"이 브라우저는 WebHID를 지원하지 않습니다",
     noWebHIDHint:"Chrome 또는 Edge(데스크톱)에서 열어주세요. (VIA와 동일한 요구사항)",
+    viaLink:"VIA Link",
     model:"모델", fwVer:"펌웨어 버전", dbType:"디바운스 타입", dbTime:"디바운스 시간", matrix:"매트릭스",
     tabLatency:"레이턴시", tabTester:"키 테스터", tabFirmware:"펌웨어",
     latCur:"현재 (누름→USB)", latCurSub:"디바운스 포함 실제 입력 지연",
@@ -224,6 +232,7 @@ const I18N = {
     prevFound:"Previous device found — click Connect to reconnect", errPrefix:"Error: ", setFail:"Setting failed: ",
     noWebHIDTitle:"This browser does not support WebHID",
     noWebHIDHint:"Please open in Chrome or Edge (desktop). (Same requirement as VIA)",
+    viaLink:"VIA Link",
     model:"Model", fwVer:"Firmware", dbType:"Debounce Type", dbTime:"Debounce Time", matrix:"Matrix",
     tabLatency:"Latency", tabTester:"Key Tester", tabFirmware:"Firmware",
     latCur:"Current (press→USB)", latCurSub:"Real latency incl. debounce",
