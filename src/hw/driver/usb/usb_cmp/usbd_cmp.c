@@ -858,9 +858,9 @@ static void  USBD_CMPSIT_HIDKeyboardDesc(USBD_HandleTypeDef *pdev, uint32_t pCon
 
   /* Append Endpoint descriptor to Configuration descriptor */
   __USBD_CMPSIT_SET_EP(pdev->tclasslist[pdev->classId].Eps[0].add,
-                       USBD_EP_TYPE_INTR, 
-                       HID_EPIN_SIZE | (2<<11),
-                       HID_HS_BINTERVAL, 
+                       USBD_EP_TYPE_INTR,
+                       HID_EPIN_SIZE,
+                       HID_HS_BINTERVAL,
                        HID_FS_BINTERVAL);
 
 

@@ -59,6 +59,10 @@
 #endif
 #define USE_USB_HS
 
+#ifndef _USE_HW_USB_EOPF
+#define _USE_HW_USB_EOPF                      0
+#endif
+
 
 /* Common Config */
 #define USBD_MAX_NUM_INTERFACES               15

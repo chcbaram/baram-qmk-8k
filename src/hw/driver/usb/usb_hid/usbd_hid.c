@@ -98,11 +98,6 @@ static void usbHidInitTimer(void);
 
 typedef struct
 {
-  uint8_t  buf[HID_KEYBOARD_REPORT_SIZE];
-} report_info_t;
-
-typedef struct
-{
   uint8_t  buf[32];
 } via_report_info_t;
 
@@ -123,13 +118,15 @@ __ALIGN_BEGIN static uint8_t via_hid_usb_report[32] __ALIGN_END;
 static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 
-static qbuffer_t              report_q;
-static report_info_t          report_buf[128];
 __ALIGN_BEGIN  static uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
+__ALIGN_BEGIN  static volatile uint8_t kbd_report[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
+static volatile bool          kbd_report_req = false;
+static volatile bool          kbd_ep_busy    = false;
 
 static qbuffer_t              report_exk_q;
 static exk_report_info_t      report_exk_buf[128];
 __ALIGN_BEGIN  static uint8_t hid_buf_exk[HID_EXK_EP_SIZE] __ALIGN_END = {0,};
+static volatile bool          exk_ep_busy    = false;
 
 
 
@@ -566,15 +563,16 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   {
     is_first = false;
 
-    qbufferCreateBySize(&report_q, (uint8_t *)report_buf, sizeof(report_info_t), 128); 
-    qbufferCreateBySize(&via_report_q, (uint8_t *)via_report_q_buf, sizeof(via_report_info_t), 128); 
-    qbufferCreateBySize(&report_exk_q, (uint8_t *)report_exk_buf, sizeof(report_info_t), 128); 
+    qbufferCreateBySize(&via_report_q, (uint8_t *)via_report_q_buf, sizeof(via_report_info_t), 128);
+    qbufferCreateBySize(&report_exk_q, (uint8_t *)report_exk_buf, sizeof(exk_report_info_t), 128);
 
     logPrintf("[OK] USB Hid\n");
     logPrintf("     Keyboard\n");
     cliAdd("usbhid", cliCmd);
 
+#if _USE_HW_USB_EOPF == 0
     usbHidInitTimer();
+#endif
   }
 
   return (uint8_t)USBD_OK;
@@ -817,10 +815,10 @@ bool USBD_HID_SendReport(uint8_t *report, uint16_t len)
 
   if (pdev->dev_state == USBD_STATE_CONFIGURED)
   {
-    if (p_hhid->state == USBD_HID_IDLE)
+    if (!kbd_ep_busy)
     {
       ret = true;
-      p_hhid->state = USBD_HID_BUSY;
+      kbd_ep_busy = true;
       (void)USBD_LL_Transmit(pdev, HID_EPIN_ADDR, report, len);
     }
   }
@@ -846,10 +844,10 @@ bool USBD_HID_SendReportEXK(uint8_t *report, uint16_t len)
 
   if (pdev->dev_state == USBD_STATE_CONFIGURED)
   {
-    if (p_hhid->state == USBD_HID_IDLE)
+    if (!exk_ep_busy)
     {
       ret = true;
-      p_hhid->state = USBD_HID_BUSY;
+      exk_ep_busy = true;
       (void)USBD_LL_Transmit(pdev, HID_EXK_EP_IN, report, len);
     }
   }
@@ -997,18 +995,21 @@ static uint16_t key_time_last_usb = 0;  // 큐잉 -> USB 전송 (USB 구간)
   */
 static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  UNUSED(epnum);
-  /* Ensure that the FIFO is empty before a new transfer, this condition could
-  be caused by  a new transfer before the end of the previous transfer */
-  ((USBD_HID_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId])->state = USBD_HID_IDLE;
+  UNUSED(pdev);
+
+  if (epnum == (HID_EXK_EP_IN & 0x0F))
+  {
+    exk_ep_busy = false;
+    return (uint8_t)USBD_OK;
+  }
 
   if (epnum != (HID_EPIN_ADDR & 0x0F))
   {
     return (uint8_t)USBD_OK;
   }
-  
-  data_in_cnt++;
 
+  kbd_ep_busy = false;
+  data_in_cnt++;
 
   usbHidMeasureRateTime();
 
@@ -1101,33 +1102,24 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
 
 bool usbHidSendReport(uint8_t *p_data, uint16_t length)
 {
-  report_info_t report_info;
-
   if (length > HID_KEYBOARD_REPORT_SIZE)
     return false;
 
   if (!USBD_is_suspended())
   {
-    key_time_pre = micros();
-
-    memcpy(hid_buf, p_data, length);
-    if (USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE))
-    {
-      key_time_req = true;
-      rate_time_req = true;
-      rate_time_pre = micros();    
-    }  
-    else
-    {
-      memcpy(report_info.buf, p_data, length);
-      qbufferWrite(&report_q, (uint8_t *)&report_info, 1);        
-    }    
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    memcpy((void *)kbd_report, p_data, length);
+    key_time_pre   = micros();
+    key_time_req   = true;
+    kbd_report_req = true;
+    __set_PRIMASK(primask);
   }
   else
   {
     usbHidUpdateWakeUp(&USBD_Device);
   }
-  
+
   return true;
 }
 
@@ -1140,13 +1132,9 @@ bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length)
 
   if (!USBD_is_suspended())
   {
-    memcpy(hid_buf_exk, p_data, length);
-    if (!USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, length))
-    {
-      report_info.len = length;
-      memcpy(report_info.buf, p_data, length);
-      qbufferWrite(&report_exk_q, (uint8_t *)&report_info, 1);        
-    }    
+    report_info.len = length;
+    memcpy(report_info.buf, p_data, length);
+    qbufferWrite(&report_exk_q, (uint8_t *)&report_info, 1);
   }
   else
   {
@@ -1378,37 +1366,34 @@ void TIM2_IRQHandler(void)
 volatile int timer_cnt = 0;
 volatile uint32_t timer_end = 0;
 
+void usbHidFlush(void)
+{
+  if (kbd_report_req && !kbd_ep_busy)
+  {
+    memcpy(hid_buf, (const void *)kbd_report, HID_KEYBOARD_REPORT_SIZE);
+    kbd_report_req = false;
+
+    rate_time_req = true;
+    rate_time_pre = micros();
+    USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);
+  }
+
+  if (qbufferAvailable(&report_exk_q) > 0 && !exk_ep_busy)
+  {
+    exk_report_info_t report_info;
+
+    qbufferRead(&report_exk_q, (uint8_t *)&report_info, 1);
+    memcpy(hid_buf_exk, report_info.buf, report_info.len);
+    USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, report_info.len);
+  }
+}
+
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 {
   timer_cnt++;
   timer_end = micros()-rate_time_sof_pre;
 
-
-  if (qbufferAvailable(&report_q) > 0)
-  {
-    if (p_hhid->state == USBD_HID_IDLE)
-    {
-      qbufferRead(&report_q, (uint8_t *)hid_buf, 1);
-      key_time_req = true;
-
-      USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);
-      rate_time_req = true;
-      rate_time_pre = micros();
-    }
-  }
-
-  if (qbufferAvailable(&report_exk_q) > 0)
-  {
-    if (p_hhid->state == USBD_HID_IDLE)
-    {
-      exk_report_info_t report_info;
-
-      qbufferRead(&report_exk_q, (uint8_t *)&report_info, 1);
-
-      memcpy(hid_buf_exk, report_info.buf, report_info.len);
-      USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, report_info.len);
-    }
-  }
+  usbHidFlush();
 
   return;
 }

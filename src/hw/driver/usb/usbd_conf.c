@@ -405,8 +405,18 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 128);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 128);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 128);  
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, 128);  
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, 128);  
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, 128);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, 128);
+
+#if _USE_HW_USB_EOPF == 1
+  {
+    USB_OTG_GlobalTypeDef *USBx = hpcd_USB_OTG_HS.Instance;
+    USB_OTG_DeviceTypeDef *dev  = (USB_OTG_DeviceTypeDef *)((uint32_t)USBx + USB_OTG_DEVICE_BASE);
+
+    dev->DCFG      = (dev->DCFG & ~USB_OTG_DCFG_PFIVL) | (0x3U << USB_OTG_DCFG_PFIVL_Pos); // EOPF at 95% of microframe
+    USBx->GINTMSK |= USB_OTG_GINTMSK_EOPFM;
+  }
+#endif
   }
   return USBD_OK;
 }

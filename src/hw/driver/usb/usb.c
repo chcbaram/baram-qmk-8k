@@ -223,6 +223,13 @@ UsbType_t usbGetType(void)
 
 void OTG_HS_IRQHandler(void)
 {
+#if _USE_HW_USB_EOPF == 1
+  if (__HAL_PCD_GET_FLAG(&hpcd_USB_OTG_HS, USB_OTG_GINTSTS_EOPF))
+  {
+    __HAL_PCD_CLEAR_FLAG(&hpcd_USB_OTG_HS, USB_OTG_GINTSTS_EOPF);
+    usbHidFlush();
+  }
+#endif
   HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
 }
 

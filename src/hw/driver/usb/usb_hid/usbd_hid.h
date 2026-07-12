@@ -162,6 +162,7 @@ typedef struct
   uint32_t time_min;
 } usb_hid_rate_info_t;
 
+void usbHidFlush(void);
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);
