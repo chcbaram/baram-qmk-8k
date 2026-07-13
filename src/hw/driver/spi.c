@@ -80,7 +80,11 @@ bool spiBegin(uint8_t ch)
       p_spi->h_spi->Init.CRCCalculation   = SPI_CRCCALCULATION_DISABLE;
       p_spi->h_spi->Init.CRCPolynomial    = 0;
 
+#if defined(USE_MKEY_SCAN)
+      p_spi->h_spi->Init.NSSPMode                   = SPI_NSS_PULSE_DISABLE;  // 연속 SCK(갭 제거): mkey 프레임락용
+#else
       p_spi->h_spi->Init.NSSPMode                   = SPI_NSS_PULSE_ENABLE;
+#endif
       p_spi->h_spi->Init.NSSPolarity                = SPI_NSS_POLARITY_HIGH;
       p_spi->h_spi->Init.FifoThreshold              = SPI_FIFO_THRESHOLD_01DATA;
       p_spi->h_spi->Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;

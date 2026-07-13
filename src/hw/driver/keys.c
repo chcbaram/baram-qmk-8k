@@ -6,6 +6,20 @@
 #include "qbuffer.h"
 #include "cli.h"
 #include "scan/pssi.h"
+#include "scan/mkey.h"
+
+
+#if defined(USE_MKEY_SCAN)
+#define scanInit     mkeyInit
+#define scanIsBusy   mkeyIsBusy
+#define scanUpdate   mkeyUpdate
+#define scanReadBuf  mkeyReadBuf
+#else
+#define scanInit     pssiInit
+#define scanIsBusy   pssiIsBusy
+#define scanUpdate   pssiUpdate
+#define scanReadBuf  pssiReadBuf
+#endif
 
 
 
@@ -23,7 +37,7 @@ static void cliCmd(cli_args_t *args);
 bool keysInit(void)
 {
 
-  pssiInit();
+  scanInit();
 
 #if CLI_USE(HW_KEYS)
   cliAdd("keys", cliCmd);
@@ -34,21 +48,21 @@ bool keysInit(void)
 
 bool keysIsBusy(void)
 {
-  return pssiIsBusy();
+  return scanIsBusy();
 }
 
 bool keysUpdate(void)
 {
   bool ret;
 
-  ret = pssiUpdate();
-  pssiReadBuf(cols_buf, MATRIX_COLS);
+  ret = scanUpdate();
+  scanReadBuf(cols_buf, MATRIX_COLS);
   return ret;
 }
 
 bool keysReadBuf(uint8_t *p_data, uint32_t length)
 {
-  pssiReadBuf(p_data, length);
+  scanReadBuf(p_data, length);
   return true;
 }
 
