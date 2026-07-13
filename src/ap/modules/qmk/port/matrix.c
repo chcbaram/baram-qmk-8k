@@ -52,6 +52,7 @@ uint8_t matrix_scan(void)
   matrix_row_t curr_matrix[MATRIX_ROWS] = {0};
   uint32_t pre_time;
   bool changed;
+  uint32_t scan_cyc = 0, decode_cyc = 0;   // DWT: 스캔 read / 디코드(전치) CPU
 
   // 키별 raw 접점(물리적으로 눌린 순간) 시각. 디바운스 확정 시 해당 키의 접점
   // 시각을 T0 로 사용해 디바운스 대기시간까지 포함한 실제 입력 지연을 측정한다.
@@ -64,22 +65,34 @@ uint8_t matrix_scan(void)
 
   #if 1
   uint8_t curr_cols[MATRIX_COLS];
-  uint32_t row_data;
+  uint32_t dwt_c;
 
-  keysReadBuf(curr_cols, MATRIX_COLS);
-
-  for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
+  static bool dwt_init = false;
+  if (!dwt_init)
   {
-    row_data = 0; 
-    for (uint32_t cols=0; cols<MATRIX_COLS; cols++)
-    {
-      if ((curr_cols[cols] & (1<<rows)) == 0x00)
-      {
-        row_data |= (1<<cols);
-      }
-    }
-    curr_matrix[rows] = row_data;
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL       |= DWT_CTRL_CYCCNTENA_Msk;
+    dwt_init = true;
   }
+
+  dwt_c = DWT->CYCCNT;
+  keysReadBuf(curr_cols, MATRIX_COLS);
+  scan_cyc = DWT->CYCCNT - dwt_c;
+
+  dwt_c = DWT->CYCCNT;
+  // 전치: 컬럼-major(눌림=0) → 로우-major. 80칸 전수검사 대신 컬럼별로
+  // 눌린 row 비트만 분배(대부분 안눌림이라 내부 루프 거의 안 돎). curr_matrix는 {0}.
+  for (uint32_t cols=0; cols<MATRIX_COLS; cols++)
+  {
+    uint32_t rbits = (uint8_t)(~curr_cols[cols]) & ((1u<<MATRIX_ROWS)-1);
+    while (rbits)
+    {
+      uint32_t rows = __builtin_ctz(rbits);
+      curr_matrix[rows] |= ((matrix_row_t)1<<cols);
+      rbits &= rbits - 1;
+    }
+  }
+  decode_cyc = DWT->CYCCNT - dwt_c;
   #else
   keysUpdate();
   for (uint32_t rows=0; rows<MATRIX_ROWS; rows++)
@@ -137,7 +150,10 @@ uint8_t matrix_scan(void)
     // 눌림이 있을 때만 측정 (릴리즈 전용 리포트는 펌웨어 필터가 무시)
     if (found)
     {
-      usbHidSetTimeLog(0, t0);
+      usbHidSetTimeLog(0, t0);        // raw: 접점 시각 (디바운스 포함 총지연용)
+      usbHidSetProcTime(pre_time);    // proc: 확정 스캔 시작 (디바운스 제외 CPU용)
+      // scan/decode(이번 스캔 DWT) + qmk 앵커(=matrix_scan 종료 시점)
+      usbHidSetProcBreak(scan_cyc, decode_cyc, DWT->CYCCNT);
     }
   }
   matrix_info();

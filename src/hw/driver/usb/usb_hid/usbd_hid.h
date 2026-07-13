@@ -169,6 +169,8 @@ bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);
 bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t wheel);
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info);
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us);
+bool usbHidSetProcTime(uint32_t time_us);
+bool usbHidSetProcBreak(uint32_t scan_cyc, uint32_t decode_cyc, uint32_t anchor_cyc);
 bool usbHidGetLatency(uint16_t *raw_us, uint16_t *pre_us, uint16_t *usb_us, uint32_t *seq);
 void usbHidSetStatusLed(uint8_t led_bits);
 

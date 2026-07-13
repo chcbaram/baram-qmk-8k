@@ -29,8 +29,8 @@
 #define USE_MKEY_SCAN
 // 샘플 지연 CCR2(TIM3 count, 6.25ns): 기본 90%=115. 50%=64,60%=77,75%=96.
 #define MKEY_SAMPLE_CCR             115
-// 캡처 slot→컬럼 정적 정렬 보정(순환). 자유진행 위상 기준: 물리8→out2 관측 → 11(=-5 mod16).
-#define MKEY_COL_SHIFT             11
+// 캡처 slot→컬럼 정적 정렬 보정(순환). init 1회 동기 위상 기준: 물리8(콤마)→out4(v) → 7.
+#define MKEY_COL_SHIFT             7
 
 #define DEBOUNCE                    20
 

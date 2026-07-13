@@ -15,8 +15,7 @@
 #define MKEY_TIM_ARR        127
 #endif
 
-// 샘플 지연 D = 주기(128) 내 CCR2. 기본 90%=115(시프트 경계 φ에서 최대로 멀어 안전).
-// 50%=64, 60%=77, 75%=96, 90%=115.
+// 샘플 지연 D = 주기(128) 내 CCR2. 90%=115. 50%=64,60%=77,75%=96.
 #ifndef MKEY_SAMPLE_CCR
 #define MKEY_SAMPLE_CCR     115
 #endif
@@ -68,12 +67,26 @@ bool mkeyInit(void)
 
   memset(mkey_idr_buf, 0xFF, sizeof(mkey_idr_buf));
 
-  if (HAL_DMAEx_List_Start(&handle_GPDMA1_Channel3) != HAL_OK)
+  mkeySpiStart();   // SPI 먼저 기동 → CH1_TCF(프레임 경계) 발생 시작
+
+  // TIM3 위상을 SPI 프레임(CH1_TCF=SPI TX-DMA 완료)에 1회 동기.
+  // 프레임(2048)=16×TIM3주기(128), 같은 SYSCLK라 이후 영구 위상 락(드리프트/누적 없음).
+  {
+    uint32_t t0 = millis();
+    GPDMA1_Channel1->CFCR = DMA_CFCR_TCF;                    // 이전 TCF 클리어
+    while ((GPDMA1_Channel1->CSR & DMA_CSR_TCF) == 0)        // 프레임 경계 대기
+    {
+      if (millis() - t0 > 10) break;                        // 안전 타임아웃(SPI 이상 시)
+    }
+    TIM3->CNT = 0;                                           // 위상 동기
+    GPDMA1_Channel1->CFCR = DMA_CFCR_TCF;
+  }
+
+  if (HAL_DMAEx_List_Start(&handle_GPDMA1_Channel3) != HAL_OK)   // 동기 후 캡처 arm
   {
     Error_Handler();
   }
 
-  mkeySpiStart();
   delay(2);
 
   logPrintf("[%s] mkeyInit()\n", ret ? "OK":"NG");
@@ -295,29 +308,37 @@ void cliCmd(cli_args_t *args)
     DWT->CTRL       |= DWT_CTRL_CYCCNTENA_Msk;
 
     // stage1: 캡처버퍼 디코드 (IDR->cols_buf), 1000회 평균
+    // 전 컬럼을 sink에 합산해 DCE(15컬럼 제거) 방지 → read에 ~COLS 바이트 합산 오버헤드 포함
     c0 = DWT->CYCCNT;
     for (int i = 0; i < 1000; i++)
     {
       mkeyReadBuf(cols_buf, MATRIX_COLS);
-      mkey_sink += cols_buf[0];
+      for (uint32_t c = 0; c < MATRIX_COLS; c++)
+        mkey_sink += cols_buf[c];
     }
     t_read = (DWT->CYCCNT - c0) / 1000;
 
-    // stage2: 매트릭스 언팩 (cols_buf->row 비트), matrix.c(:66-82)와 동일
+    // stage2: 매트릭스 언팩 (cols_buf->row 비트), matrix.c와 동일한 분배 방식.
+    // (전 row 합산으로 DCE 방지. 무입력 시 내부 while 미실행 = 대표 idle 비용)
     c0 = DWT->CYCCNT;
     for (int i = 0; i < 1000; i++)
     {
       for (uint32_t r = 0; r < MATRIX_ROWS; r++)
+        curr_matrix[r] = 0;
+
+      for (uint32_t c = 0; c < MATRIX_COLS; c++)
       {
-        uint32_t row_data = 0;
-        for (uint32_t c = 0; c < MATRIX_COLS; c++)
+        uint32_t rbits = (uint8_t)(~cols_buf[c]) & ((1u << MATRIX_ROWS) - 1);
+        while (rbits)
         {
-          if ((cols_buf[c] & (1 << r)) == 0)
-            row_data |= (1 << c);
+          uint32_t r = __builtin_ctz(rbits);
+          curr_matrix[r] |= (1u << c);
+          rbits &= rbits - 1;
         }
-        curr_matrix[r] = row_data;
       }
-      mkey_sink += curr_matrix[0];
+
+      for (uint32_t r = 0; r < MATRIX_ROWS; r++)
+        mkey_sink += curr_matrix[r];
     }
     t_unpack = (DWT->CYCCNT - c0) / 1000;
 
