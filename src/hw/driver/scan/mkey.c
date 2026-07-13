@@ -15,9 +15,10 @@
 #define MKEY_TIM_ARR        127
 #endif
 
-// 샘플 지연 D = 주기(128) 내 CCR2. 90%=115. 50%=64,60%=77,75%=96.
+// 샘플 지연 D = 주기(128) 내 CCR2. 창 중앙 50%=64가 최적(세틀·다음전환에서 양쪽 최대 이격).
+// 높은 D(90%=115)는 다음 컬럼 전환에 붙어 다중키/뒤쪽컬럼 고스팅. 60%=77,75%=96.
 #ifndef MKEY_SAMPLE_CCR
-#define MKEY_SAMPLE_CCR     115
+#define MKEY_SAMPLE_CCR     64
 #endif
 
 // 프레임 재무장(CH1_TCF=워드완료) 스큐로 캡처가 컬럼 한 칸 회전됨 → 순환 보정.

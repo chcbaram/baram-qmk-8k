@@ -27,8 +27,8 @@
 
 // GPIO+DMA 로우 캡처(mkey) 시험: PSSI 대신 TIM3+GPDMA로 GPIOC->IDR 캡처, 프레임 자가치유.
 #define USE_MKEY_SCAN
-// 샘플 지연 CCR2(TIM3 count, 6.25ns): 기본 90%=115. 50%=64,60%=77,75%=96.
-#define MKEY_SAMPLE_CCR             115
+// 샘플 지연 CCR2(TIM3 count, 6.25ns): 창 중앙 50%=64(양쪽 최대 이격). 90%=115은 다중키 고스팅.
+#define MKEY_SAMPLE_CCR             64
 
 #define DEBOUNCE                    20
 
