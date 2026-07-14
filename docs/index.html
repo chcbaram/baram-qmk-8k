@@ -90,6 +90,30 @@
   .dl .sz{ margin-left:auto; font-size:12px; color:var(--dim); font-weight:500; }
   footer{ text-align:center; color:var(--dim); font-size:12px; padding:24px; }
   code{ background:var(--panel2); padding:1px 6px; border-radius:5px; font-size:12px; }
+  .subtabs{ display:flex; gap:6px; margin-bottom:16px; }
+  .subtab{ padding:8px 15px; border:1px solid var(--line); background:var(--panel2); color:var(--dim);
+    border-radius:8px; font-weight:600; }
+  .subtab.active{ color:#fff; background:var(--accent); border-color:var(--accent); }
+  .subpanel{ display:none; } .subpanel.active{ display:block; }
+  .key.ckey{ flex-direction:column; gap:1px; font-size:9px; cursor:pointer; }
+  .key.ckey .cc{ font-weight:700; font-size:11px; }
+  .key.ckey .cd{ font-size:8px; opacity:.85; }
+  .key.ckey.sel{ outline:2px solid var(--accent2); outline-offset:1px; z-index:2; }
+  .detail{ margin-top:16px; }
+  .detail .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+  .dcell{ background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:10px 12px; }
+  .dcell .k{ font-size:11px; color:var(--dim); margin-bottom:4px; }
+  .tip{ position:relative; cursor:help; text-decoration:underline dotted var(--dim);
+    text-underline-offset:3px; text-decoration-thickness:1px; }
+  .tip:hover::after{ content:attr(data-tip); position:absolute; left:0; top:calc(100% + 5px); z-index:20;
+    width:max-content; max-width:250px; white-space:normal; background:var(--panel2); color:var(--txt);
+    border:1px solid var(--line); border-radius:8px; padding:8px 11px; font-size:12px; line-height:1.5;
+    font-weight:500; box-shadow:0 6px 18px rgba(0,0,0,.35); pointer-events:none; }
+  .dcell .v{ font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .verdict{ display:inline-block; padding:3px 12px; border-radius:20px; font-weight:700; font-size:13px; }
+  .heatlegend{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--dim); }
+  .heatbar{ width:120px; height:10px; border-radius:5px;
+    background:linear-gradient(90deg, hsl(140,72%,42%), hsl(70,72%,38%), hsl(0,72%,30%)); }
 </style>
 </head>
 <body>
@@ -127,6 +151,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="latency" data-i18n="tabLatency">레이턴시</button>
     <button class="tab" data-tab="tester" data-i18n="tabTester">키 테스터</button>
+    <button class="tab" data-tab="diag" data-i18n="tabDiag">점검</button>
     <button class="tab" data-tab="firmware" data-i18n="tabFirmware">펌웨어</button>
   </div>
 
@@ -164,6 +189,52 @@
     </div>
   </div>
 
+  <!-- 점검 (채터링 / USB) -->
+  <div class="panel" id="panel-diag">
+    <div id="diagUnsupported" class="card" style="display:none; margin-bottom:16px;">
+      <h3 class="err" data-i18n="diagUnsupTitle">이 펌웨어는 점검 기능을 지원하지 않습니다</h3>
+      <div class="hint" data-i18n="diagUnsupHint">최신 펌웨어(점검 지원)로 업데이트하세요. '펌웨어' 탭에서 받을 수 있습니다.</div>
+    </div>
+    <div id="diagBody">
+    <div class="subtabs">
+      <button class="subtab active" data-sub="chatter" data-i18n="subChatter">채터링 점검</button>
+      <button class="subtab" data-sub="usb" data-i18n="subUsb">USB 점검</button>
+    </div>
+
+    <div class="subpanel active" id="sub-chatter">
+      <div class="row" style="justify-content:space-between;">
+        <div class="heatlegend">
+          <span data-i18n="chatterLegend">채터 심각도</span>
+          <span class="heatbar"></span>
+          <span data-i18n="chatterLegend2">낮음 → 높음</span>
+        </div>
+        <button id="resetChatter" data-i18n="reset">초기화</button>
+      </div>
+      <div class="card">
+        <div class="hint" data-i18n="chatterHint">키를 클릭하면 아래에 상세 통계가 표시됩니다. (카운트 · 최대 지연 ms)</div>
+        <div class="kbwrap"><div class="kb" id="kbChatter"><div class="msg" data-i18n="testerHint" style="padding:20px">연결하면 키 배열이 표시됩니다.</div></div></div>
+      </div>
+      <div class="card detail" id="chatterDetail" style="display:none;"></div>
+    </div>
+
+    <div class="subpanel" id="sub-usb">
+      <div class="row" style="justify-content:space-between;">
+        <div><h3 data-i18n="usbTitle">USB 링크 상태</h3>
+          <div class="hint" data-i18n="usbHint">케이블/커넥터 상태 간접 지표. 값은 계속 누적됩니다(재연결에도 유지).</div></div>
+        <button id="resetUsb" data-i18n="reset">초기화</button>
+      </div>
+      <div style="margin-bottom:14px;"><span class="verdict" id="usbVerdict">—</span></div>
+      <div class="stats">
+        <div class="stat"><div class="lbl" data-i18n="usbDisc" data-i18n-title="usbDisc_d">연결 끊김(웹)</div><div class="big"><span id="uDisc">0</span></div></div>
+        <div class="stat"><div class="lbl" data-i18n="usbReset" data-i18n-title="usbReset_d">USB 재열거</div><div class="big"><span id="uReset">0</span></div><div class="sub" id="uResetCur"></div></div>
+        <div class="stat"><div class="lbl" data-i18n="usbStall" data-i18n-title="usbStall_d">SOF 순단</div><div class="big"><span id="uStall">0</span></div></div>
+        <div class="stat"><div class="lbl" data-i18n="usbSuspend" data-i18n-title="usbSuspend_d">서스펜드</div><div class="big"><span id="uSuspend">0</span></div></div>
+        <div class="stat"><div class="lbl" data-i18n="usbUptime" data-i18n-title="usbUptime_d">가동시간</div><div class="big"><span id="uUptime">—</span><small>s</small></div></div>
+      </div>
+    </div>
+    </div><!-- /diagBody -->
+  </div>
+
   <!-- FIRMWARE DOWNLOAD (연결 불필요) -->
   <div class="panel" id="panel-firmware">
     <div class="card">
@@ -194,7 +265,7 @@ const VENOM = {
 const VENDOR_ID = 0x0483;
 const USAGE_PAGE = 0xFF60;
 const RAW_CMD = 0xB0;
-const SUB = { INFO:0x01, LATENCY:0x02, MATRIX:0x03, LAYOUT:0x04 };
+const SUB = { INFO:0x01, LATENCY:0x02, MATRIX:0x03, LAYOUT:0x04, CHATTER:0x05, USBH:0x06 };
 // VIA 표준 커스텀 명령 (디바운스 설정 변경/저장)
 const VIA_SET_VALUE = 0x07, VIA_SAVE = 0x09;
 const CH_DEBOUNCE = 13, DBV_TYPE = 1, DBV_TIME = 2;
@@ -218,6 +289,32 @@ const I18N = {
     histTitle:"지연 분포 히스토그램", histHint:"키를 여러 번 눌러 샘플을 모으세요 (누름→USB, 디바운스 포함, ms)",
     reset:"초기화", pressed:"눌림", tested:"테스트됨", resetTest:"테스트 초기화",
     testerHint:"연결하면 키 배열이 표시됩니다.",
+    tabDiag:"점검", subChatter:"채터링 점검", subUsb:"USB 점검",
+    diagUnsupTitle:"이 펌웨어는 점검 기능을 지원하지 않습니다",
+    diagUnsupHint:"최신 펌웨어(점검 지원)로 업데이트하세요. '펌웨어' 탭에서 받을 수 있습니다.",
+    chatterHint:"칸: 에러율% · ×작동수 · 최대지연ms. 에러율(디바운스 초과 비율)이 높을수록 붉게·교체권장. 키 클릭 시 아래 상세 통계.",
+    chatterLegend:"채터 심각도", chatterLegend2:"낮음 → 높음",
+    usbTitle:"USB 링크 상태", usbHint:"케이블/커넥터 상태 간접 지표. 값은 계속 누적됩니다(재연결에도 유지).",
+    usbDisc:"연결 끊김(웹)", usbReset:"USB 재열거", usbStall:"SOF 순단", usbSuspend:"서스펜드", usbUptime:"가동시간",
+    cKey:"키", cActs:"작동 수", cChatter:"바운스 관측", cRate:"에러율", cOver:"디바운스 초과",
+    cMin:"최소 지연", cAvg:"평균 지연", cMax:"최대 지연", cLast:"최근 지연", cEdges:"노이즈(최대/최근)",
+    cThresh:"판정 기준(디바운스)",
+    vGood:"양호", vWarn:"주의", vBad:"교체권장", uBad:"불량",
+    cActs_d:"이 키를 누른(0→1) 총 횟수.",
+    cRate_d:"디바운스 초과 횟수 ÷ 작동 수. 더블입력이 발생할 수 있는 비율(노후율). 색상·판정의 기준.",
+    cOver_d:"바운스가 디바운스 시간을 넘어 더블입력을 유발할 수 있었던 작동 횟수.",
+    cChatter_d:"이 키를 누른 것 중 접점이 튄(노이즈 1 이상) 작동의 횟수. 예: 62번 중 14번 바운스. 빈도 지표.",
+    cMin_d:"바운스가 가라앉기까지 걸린 시간(첫 엣지~마지막 엣지)의 최소값.",
+    cAvg_d:"바운스 지속시간의 평균.",
+    cMax_d:"바운스 지속시간의 최대값. 이 값이 디바운스 시간을 넘으면 더블입력이 발생합니다(판정 기준).",
+    cLast_d:"가장 최근 바운스의 지속시간.",
+    cEdges_d:"한 번의 작동에서 접점이 더 튄(초과 전이) 횟수. 깨끗한 누름/탭은 0, 바운스하면 1 이상. 최대=최악, 최근=마지막.",
+    cThresh_d:"현재 디바운스 시간. 최대 바운스 지연이 이 값 이상이면 교체권장, 절반 이상이면 주의.",
+    usbDisc_d:"브라우저가 감지한 장치 연결 끊김 횟수. 케이블/커넥터 접촉 불량의 가장 직접적인 지표.",
+    usbReset_d:"USB 버스 리셋(재열거) 횟수. 사용 중 재열거가 잦으면 접촉 불량 신호.",
+    usbStall_d:"하드웨어 프레임번호가 멈춘(실제 버스 SOF 정지) 감지 횟수. 순간적인 신호 끊김.",
+    usbSuspend_d:"USB 서스펜드 진입 횟수. PC 절전 등 정상일 수 있어 판정에서는 제외(참고용).",
+    usbUptime_d:"장치 부팅 이후 경과 시간(초). 값이 갑자기 줄면 장치가 재부팅된 것(누적은 계속 유지).",
     fwTitle:"펌웨어 다운로드",
     fwHint:"GitHub 릴리즈에서 원하는 버전(4개 보드 uf2 + VIA JSON)을 받습니다. 연결 불필요.",
     relLoading:"릴리즈 목록을 불러오는 중…", relNone:"아직 등록된 펌웨어 릴리즈가 없습니다.",
@@ -240,6 +337,32 @@ const I18N = {
     histTitle:"Latency Histogram", histHint:"Press keys repeatedly to collect samples (press→USB, incl. debounce, ms)",
     reset:"Reset", pressed:"Pressed", tested:"Tested", resetTest:"Reset Test",
     testerHint:"Connect to show the key layout.",
+    tabDiag:"Diagnostics", subChatter:"Chatter Check", subUsb:"USB Check",
+    diagUnsupTitle:"This firmware does not support diagnostics",
+    diagUnsupHint:"Please update to the latest firmware (with diagnostics). Get it from the 'Firmware' tab.",
+    chatterHint:"Cell: error rate% · ×actuations · max delay ms. Higher error rate (over-debounce ratio) = redder / replace. Click a key for details.",
+    chatterLegend:"Chatter severity", chatterLegend2:"low → high",
+    usbTitle:"USB Link Health", usbHint:"Indirect cable/connector indicators. Values keep accumulating (persist across reconnects).",
+    usbDisc:"Disconnects (web)", usbReset:"USB Re-enum", usbStall:"SOF Stalls", usbSuspend:"Suspends", usbUptime:"Uptime",
+    cKey:"Key", cActs:"Actuations", cChatter:"Bounce events", cRate:"Error rate", cOver:"Over debounce",
+    cMin:"Min delay", cAvg:"Avg delay", cMax:"Max delay", cLast:"Last delay", cEdges:"Noise (max/last)",
+    cThresh:"Threshold (debounce)",
+    vGood:"Good", vWarn:"Caution", vBad:"Replace", uBad:"Bad",
+    cActs_d:"Total times this key was pressed (0→1).",
+    cRate_d:"Over-debounce count ÷ actuations. Rate of presses that can cause a double input (wear). Basis for color/verdict.",
+    cOver_d:"Actuations whose bounce exceeded the debounce time (could cause a double input).",
+    cChatter_d:"How many actuations bounced (noise ≥ 1). e.g. 14 of 62 presses bounced. A frequency metric.",
+    cMin_d:"Shortest settling time (first edge → last edge) of a bounce.",
+    cAvg_d:"Average bounce duration.",
+    cMax_d:"Longest bounce duration. If it exceeds the debounce time, double inputs occur (the verdict basis).",
+    cLast_d:"Duration of the most recent bounce.",
+    cEdges_d:"Extra contact transitions in one actuation. Clean press/tap = 0, a bounce = 1+. Max = worst, Last = latest.",
+    cThresh_d:"Current debounce time. Max bounce ≥ this → Replace, ≥ half → Caution.",
+    usbDisc_d:"Device disconnects observed by the browser. The most direct sign of a bad cable/connector.",
+    usbReset_d:"USB bus resets (re-enumerations). Frequent re-enum during use signals a bad contact.",
+    usbStall_d:"Detected halts of the hardware frame number (actual bus SOF stall). Momentary signal loss.",
+    usbSuspend_d:"USB suspend entries. Can be normal (PC sleep), so excluded from the verdict (info only).",
+    usbUptime_d:"Seconds since device boot. A sudden drop means the device rebooted (accumulation persists).",
     fwTitle:"Firmware Download",
     fwHint:"Download a version (4 boards' uf2 + VIA JSON) from GitHub Releases. No connection needed.",
     relLoading:"Loading releases…", relNone:"No firmware releases published yet.",
@@ -262,6 +385,10 @@ function applyLang(l){
   try { localStorage.setItem("venom_lang", lang); } catch(_){}
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    el.setAttribute("data-tip", t(el.dataset.i18nTitle)); el.classList.add("tip");
+  });
+  detailKeyIdx = -1;   // 언어 바뀌면 상세 패널 라벨을 다음 폴에서 새 언어로 재생성
   $("langBtn").textContent = (lang === "ko") ? "EN" : "한글";
   // 동적 문자열 갱신
   setStatus(curStatus.key, curStatus.on, curStatus.extra);
@@ -276,6 +403,9 @@ let waiters = [];
 let pumping = false;
 let activeTab = "latency";
 let debType = 0;   // 현재 디바운스 타입 (0=GAMING, 1=TYPING) — 히스토그램 범위 결정
+let apiVersion = 0;        // 펌웨어 API 버전 (2 이상이면 점검 지원)
+let diagSupported = false; // 점검(채터링/USB) 기능 지원 여부
+let debounceMs = 5;        // 현재 디바운스 시간(ms) — 채터링 판정 기준
 
 let layoutKeys = [];          // {x,y,w,h,row,col} (키유닛)
 let matrixRows = 0, matrixCols = 0;
@@ -361,7 +491,6 @@ async function openDevice(dev){
   device = dev;
   if (!device.opened) await device.open();
   device.addEventListener("inputreport", onInputReport);
-  navigator.hid.addEventListener("disconnect", onDisconnect);
 
   const pid = device.productId;
   const model = VENOM[pid] || (device.productName || "").trim() || "Unknown";
@@ -378,7 +507,7 @@ async function openDevice(dev){
 }
 
 function onDisconnect(e){
-  if (device && e.device === device) teardown();
+  if (device && e.device === device){ usbDiscCount++; teardown(); }   // 케이블 끊김 지표(USB 점검)
 }
 async function disconnect(){
   if (device){ try{ await device.close(); }catch(_){} }
@@ -406,6 +535,10 @@ async function loadInfo(){
   const d = await sendCmd(SUB.INFO);
   const dtype = d.getUint8(3), dtime = d.getUint8(4);
   matrixRows = d.getUint8(5); matrixCols = d.getUint8(6);
+  apiVersion = d.getUint8(2);
+  diagSupported = apiVersion >= 2;
+  debounceMs = (dtype === 0xFF) ? 5 : (dtime || 5);
+  updateDiagSupport();
 
   let ver = "";
   for (let i=0;i<16;i++){ const c=d.getUint8(10+i); if(!c)break; ver+=String.fromCharCode(c); }
@@ -441,6 +574,7 @@ async function loadLayout(){
     layoutKeys.push({ x:buf[i]/4, y:buf[i+1]/4, w:buf[i+2]/4, h:buf[i+3]/4, row:buf[i+4], col:buf[i+5] });
   }
   renderKeyboard();
+  renderChatterKeyboard();
 }
 
 function renderKeyboard(){
@@ -472,8 +606,12 @@ async function startPump(){
   pumping = true;
   while (pumping && device){
     try{
-      await pollLatency();
+      if (activeTab !== "diag") await pollLatency();
       if (activeTab === "tester") await pollMatrix();
+      else if (activeTab === "diag" && diagSupported){
+        if (diagSub === "chatter") await pollChatter();
+        else await pollUsbHealth();
+      }
     }catch(_){ /* timeout 등 무시 */ }
     await new Promise(r => setTimeout(r, 12));
   }
@@ -516,6 +654,215 @@ async function pollMatrix(){
 
 function updatePressLine(){
   $("pressLine").textContent = t("pressLine", pressCount, testedSet.size, layoutKeys.length);
+}
+
+// ================= 점검: 채터링 =================
+const CHATTER_WINDOW_MS = 40;
+let diagSub = "chatter";
+let selectedKeyIdx = -1;
+let detailKeyIdx = -1;      // 상세 패널이 현재 그린 키 (구조 재생성 판단용)
+const chatterKeyEls = {};   // idx -> {el, cc, cd, row, col}
+
+function renderChatterKeyboard(){
+  const kb = $("kbChatter");
+  kb.innerHTML = "";
+  for (const k in chatterKeyEls) delete chatterKeyEls[k];
+  if (!layoutKeys.length){ kb.innerHTML = '<div class="msg" style="padding:20px">'+t("testerHint")+'</div>'; return; }
+  const U = 46, GAP = 3;
+  let maxX=0, maxY=0;
+  for (const k of layoutKeys){ maxX=Math.max(maxX,k.x+k.w); maxY=Math.max(maxY,k.y+k.h); }
+  kb.style.width=(maxX*U)+"px"; kb.style.height=(maxY*U)+"px";
+  for (const k of layoutKeys){
+    const el = document.createElement("div");
+    el.className = "key ckey";
+    el.style.left=(k.x*U)+"px"; el.style.top=(k.y*U)+"px";
+    el.style.width=(k.w*U-GAP)+"px"; el.style.height=(k.h*U-GAP)+"px";
+    const cc = document.createElement("span"); cc.className="cc"; cc.textContent="0";
+    const cd = document.createElement("span"); cd.className="cd"; cd.textContent="";
+    const cr = document.createElement("span"); cr.className="cd"; cr.textContent="";
+    el.appendChild(cc); el.appendChild(cd); el.appendChild(cr);
+    const idx = k.row*matrixCols + k.col;
+    el.addEventListener("click", ()=>selectChatterKey(idx, k.row, k.col));
+    kb.appendChild(el);
+    chatterKeyEls[idx] = { el, cc, cd, cr, row:k.row, col:k.col };
+  }
+}
+
+// 에러율(디바운스 초과 비율 %) 기준. 이 값 이상이면 교체(색상 최대 빨강)
+const CHAT_REPLACE = 10;
+// 심각도 = 에러율 ÷ 교체임계 (단일 이상치 대신 '얼마나 자주 넘느냐'로 판단)
+function chatterSeverity(errRate){
+  const s = errRate / CHAT_REPLACE;
+  return s>1 ? 1 : (s<0 ? 0 : s);
+}
+function heatColor(sev){
+  const hue = 140*(1-sev);         // 초록(140) → 빨강(0)
+  const light = 45 - 18*sev;       // 심할수록 어두운(진한) 빨강
+  return "hsl("+hue.toFixed(0)+", 72%, "+light.toFixed(0)+"%)";
+}
+function updateChatterKey(idx, acts, durUs, errRate){
+  const e = chatterKeyEls[idx];
+  if (!e) return;
+  const maxMs = durUs/1000;
+  e.cc.textContent = acts>0 ? ((errRate<10 ? errRate.toFixed(1) : Math.round(errRate))+"%") : "0";  // 1줄(큰): 에러율
+  e.cd.textContent = acts>0 ? (acts>=1000 ? "×999+" : "×"+acts) : "";  // 2줄: 작동 수(표시 캡, 상세는 실제값)
+  e.cr.textContent = acts>0 ? (maxMs.toFixed(1)+"ms") : "";       // 3줄: 최대 지연(피크)
+  if (acts>0){
+    e.el.style.background = heatColor(chatterSeverity(errRate));
+    e.el.style.color = "#fff";
+    e.el.style.borderColor = "transparent";
+  } else {
+    e.el.style.background = ""; e.el.style.color = ""; e.el.style.borderColor = "";
+  }
+}
+function clearSel(){ for (const k in chatterKeyEls) chatterKeyEls[k].el.classList.remove("sel"); }
+function selectChatterKey(idx){
+  if (selectedKeyIdx === idx){ selectedKeyIdx=-1; detailKeyIdx=-1; clearSel(); $("chatterDetail").style.display="none"; return; }
+  selectedKeyIdx = idx; clearSel();
+  const e = chatterKeyEls[idx]; if (e) e.el.classList.add("sel");
+  pollChatterDetail(idx).catch(()=>{});
+}
+// 판정: 에러율(디바운스 초과 비율) 기준. 초과 0=양호, 발생하나 드물면 주의, 자주면 교체.
+function chatterVerdict(errRate){
+  if (errRate >= CHAT_REPLACE) return {k:"vBad", cls:"bad"};
+  if (errRate > 0)             return {k:"vWarn", cls:"warn"};
+  return {k:"vGood", cls:"good"};
+}
+function verdictStyle(cls){
+  if (cls==="bad")  return "background:hsl(0,72%,32%);color:#fff;";
+  if (cls==="warn") return "background:var(--warn);color:#111;";
+  return "background:var(--ok);color:#06381a;";
+}
+function tipAttr(key){
+  const tip = t(key+"_d");
+  return (tip && tip !== key+"_d") ? ' class="k tip" data-tip="'+esc(tip)+'"' : ' class="k"';
+}
+function dcellStatic(key, id){
+  return '<div class="dcell"><div'+tipAttr(key)+'>'+t(key)+'</div><div class="v" id="'+id+'">—</div></div>';
+}
+
+async function pollChatter(){
+  // 선택된 키는 매 주기 우선 갱신, 이어서 전체 그리드를 갱신(모든 키가 매 주기 반영)
+  if (selectedKeyIdx >= 0) await pollChatterDetail(selectedKeyIdx);
+  const total = matrixRows*matrixCols;
+  let off = 0, guard = 0;
+  while (off < total && guard++ < 40){
+    const d = await sendCmd(SUB.CHATTER, [3, off & 0xFF, (off>>8)&0xFF]);
+    const n = d.getUint8(3);
+    if (n === 0) break;
+    for (let i=0;i<n;i++){
+      const b = 4 + i*5;   // 키당 5B: 작동수_lo, 작동수_hi, 에러율×10_lo, 에러율×10_hi, 최대지연(0.25ms단위)
+      const acts = d.getUint8(b) | (d.getUint8(b+1)<<8);
+      const err = (d.getUint8(b+2) | (d.getUint8(b+3)<<8)) / 10;
+      updateChatterKey(off+i, acts, d.getUint8(b+4)*250, err);
+    }
+    off += n;
+  }
+}
+// 상세 구조는 선택이 바뀔 때만 재생성(툴팁 hover 가 재생성으로 끊기지 않도록), 이후엔 값만 갱신
+function buildChatterDetail(idx, row, col){
+  detailKeyIdx = idx;
+  const box = $("chatterDetail");
+  box.style.display = "block";
+  box.innerHTML =
+    '<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    + '<h3>'+t("cKey")+' R'+row+' · C'+col+'</h3>'
+    + '<span class="verdict" id="dVerdict">—</span></div>'
+    + '<div class="grid">'
+    + dcellStatic("cActs","dActs")
+    + dcellStatic("cRate","dRate")
+    + dcellStatic("cOver","dOver")
+    + dcellStatic("cChatter","dChatter")
+    + dcellStatic("cMin","dMin")
+    + dcellStatic("cAvg","dAvg")
+    + dcellStatic("cMax","dMax")
+    + dcellStatic("cLast","dLast")
+    + dcellStatic("cEdges","dEdges")
+    + dcellStatic("cThresh","dThresh")
+    + '</div>';
+}
+function setTxt(id, v){ const e=$(id); if(e) e.textContent=v; }
+async function pollChatterDetail(idx){
+  const d = await sendCmd(SUB.CHATTER, [4, idx & 0xFF, (idx>>8)&0xFF]);
+  const u16 = (o)=> d.getUint8(o)|(d.getUint8(o+1)<<8);
+  const st = { actuations:u16(3), chatter:u16(5), over:u16(7),
+               min:u16(9), max:u16(11), last:u16(13), avg:u16(15),
+               maxEdges:d.getUint8(17), lastEdges:d.getUint8(18) };
+  const e = chatterKeyEls[idx];
+  const row = e ? e.row : Math.floor(idx/matrixCols), col = e ? e.col : idx%matrixCols;
+  if (detailKeyIdx !== idx) buildChatterDetail(idx, row, col);   // 선택 변경 시에만 구조 생성
+
+  const mm = (us)=> (us/1000).toFixed(2)+" ms";
+  const errRate = st.actuations ? (st.over/st.actuations*100) : 0;
+  const v = chatterVerdict(errRate);
+  const badge = $("dVerdict");
+  if (badge){ badge.textContent = t(v.k); badge.setAttribute("style", verdictStyle(v.cls)); }
+  setTxt("dActs", st.actuations);
+  setTxt("dRate", errRate.toFixed(1)+"%");
+  setTxt("dOver", st.over);
+  setTxt("dChatter", st.chatter);
+  setTxt("dMin", st.chatter?mm(st.min):"—");
+  setTxt("dAvg", st.chatter?mm(st.avg):"—");
+  setTxt("dMax", st.chatter?mm(st.max):"—");
+  setTxt("dLast", st.chatter?mm(st.last):"—");
+  setTxt("dEdges", Math.max(0, st.maxEdges-2)+" / "+Math.max(0, st.lastEdges-2));   // 노이즈 = 초과 전이(엣지-2)
+  setTxt("dThresh", debounceMs+" ms");
+}
+async function chatterStart(){ if(!diagSupported) return; try{ await sendCmd(SUB.CHATTER,[1, CHATTER_WINDOW_MS&0xFF, (CHATTER_WINDOW_MS>>8)&0xFF]); }catch(_){} }
+async function chatterStop(){ if(!device) return; try{ await sendCmd(SUB.CHATTER,[0]); }catch(_){} }
+
+// ================= 점검: USB =================
+// 세션 누적 이벤트가 이 값 이상이면 '불량', 1개 이상이면 '주의', 0이면 '양호'
+const USB_BAD = { disc:2, reset:3, stall:5 };
+let usbSession = { reset:0, suspend:0, stall:0 };
+let usbLast = { reset:0, suspend:0, stall:0, uptime:0 };
+let usbDiscCount = 0;
+let usbSeen = false;
+
+function usbAccum(name, cur){
+  const last = usbLast[name];
+  usbSession[name] += (cur >= last) ? (cur - last) : cur;   // 리부트로 0부터 재시작한 경우 cur 전체 반영
+  usbLast[name] = cur;
+}
+function usbResetSession(){ usbSession={reset:0,suspend:0,stall:0}; usbLast={reset:0,suspend:0,stall:0,uptime:0}; usbDiscCount=0; usbSeen=false; }
+
+async function pollUsbHealth(){
+  const d = await sendCmd(SUB.USBH, [0]);
+  const u16=(o)=> d.getUint8(o)|(d.getUint8(o+1)<<8);
+  const h = { reset:u16(3), suspend:u16(5), stall:u16(7), uptime:u16(9) };
+  if (!usbSeen){
+    // 세션 시작: 연결 전 발생분은 기준선으로만 잡고 누적은 0에서 시작
+    usbLast.reset=h.reset; usbLast.suspend=h.suspend; usbLast.stall=h.stall; usbLast.uptime=h.uptime; usbSeen=true;
+  } else {
+    if (h.uptime + 2 < usbLast.uptime){ usbLast.reset=0; usbLast.suspend=0; usbLast.stall=0; }  // 리부트 감지 → 재시작분 반영
+    usbAccum("reset", h.reset); usbAccum("suspend", h.suspend); usbAccum("stall", h.stall);
+    usbLast.uptime = h.uptime;
+  }
+
+  $("uDisc").textContent    = usbDiscCount;
+  $("uReset").textContent   = usbSession.reset;
+  $("uResetCur").textContent= "now "+h.reset;
+  $("uStall").textContent   = usbSession.stall;
+  $("uSuspend").textContent = usbSession.suspend;
+  $("uUptime").textContent  = h.uptime;
+
+  // 3단계: 이벤트 0 → 양호, 소량 → 주의, 임계 이상 → 불량
+  let v;
+  if (usbDiscCount>=USB_BAD.disc || usbSession.reset>=USB_BAD.reset || usbSession.stall>=USB_BAD.stall)
+    v = {k:"uBad", cls:"bad"};
+  else if (usbDiscCount>0 || usbSession.reset>0 || usbSession.stall>0)
+    v = {k:"vWarn", cls:"warn"};
+  else
+    v = {k:"vGood", cls:"good"};
+  const badge = $("usbVerdict");
+  badge.textContent = t(v.k); badge.setAttribute("style", verdictStyle(v.cls));
+}
+
+function updateDiagSupport(){
+  const unsup = $("diagUnsupported"), body = $("diagBody");
+  if (!unsup || !body) return;
+  unsup.style.display = diagSupported ? "none" : "block";
+  body.style.display  = diagSupported ? "block" : "none";
 }
 
 // ---- 레이턴시 UI + 히스토그램 ----
@@ -683,7 +1030,31 @@ document.querySelectorAll(".tab").forEach(tab => {
     $("panel-"+activeTab).classList.add("active");
     if (activeTab==="latency") drawHistogram();
     if (activeTab==="firmware") loadReleases();
+    // 점검 탭 진입 시 채터링 서브탭이면 검출 시작, 벗어나면 종료
+    if (activeTab==="diag" && diagSupported){ if (diagSub==="chatter") chatterStart(); }
+    else chatterStop();
   });
+});
+
+// 점검 서브탭 (채터링 / USB)
+document.querySelectorAll(".subtab").forEach(st => {
+  st.addEventListener("click", () => {
+    document.querySelectorAll(".subtab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".subpanel").forEach(x=>x.classList.remove("active"));
+    st.classList.add("active");
+    diagSub = st.dataset.sub;
+    $("sub-"+diagSub).classList.add("active");
+    if (diagSub==="chatter") chatterStart(); else chatterStop();
+  });
+});
+$("resetChatter").addEventListener("click", async () => {
+  try{ await sendCmd(SUB.CHATTER,[2]); }catch(_){}
+  for (const k in chatterKeyEls) updateChatterKey(parseInt(k),0,0,0);
+  selectedKeyIdx=-1; detailKeyIdx=-1; clearSel(); $("chatterDetail").style.display="none";
+});
+$("resetUsb").addEventListener("click", async () => {
+  try{ await sendCmd(SUB.USBH,[1]); }catch(_){}
+  usbResetSession();
 });
 
 // selTime 옵션 채우기 (5~40ms)
@@ -741,6 +1112,12 @@ if (!("hid" in navigator)){
     const dev = list.find(d => d.vendorId===VENDOR_ID && VENOM[d.productId]);
     if (dev){ setStatus("prevFound", false); }
   }).catch(()=>{});
+  // 케이블 재연결 시 자동으로 다시 열고 폴링 재개 (USB 점검 세션 유지)
+  navigator.hid.addEventListener("connect", (e) => {
+    if (!device && e.device && e.device.vendorId===VENDOR_ID && VENOM[e.device.productId])
+      openDevice(e.device).catch(()=>{});
+  });
+  navigator.hid.addEventListener("disconnect", onDisconnect);
 }
 </script>
 </body>

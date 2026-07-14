@@ -966,8 +966,12 @@ static uint32_t rate_time_max = 0;
 static uint32_t rate_time_min_check = 0xFFFF; 
 static uint32_t rate_time_max_check = 0; 
 
-static uint32_t rate_time_sof_pre = 0; 
-static uint32_t rate_time_sof = 0; 
+static uint32_t rate_time_sof_pre = 0;
+static uint32_t rate_time_sof = 0;
+
+// USB 링크(케이블) 상태 간접 지표 (USB ISR/콜백에서만 갱신)
+static uint32_t link_reset_count   = 0;
+static uint32_t link_suspend_count = 0;
 
 static uint16_t rate_his_buf[100];
 
@@ -1283,6 +1287,31 @@ bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info)
   p_info->time_max = rate_time_max;
   p_info->time_min = rate_time_min;
   return true;
+}
+
+void usbHidGetLinkHealth(usb_link_health_t *p_info)
+{
+  p_info->reset_count     = link_reset_count;
+  p_info->suspend_count   = link_suspend_count;
+  p_info->sof_stall_count = usbLinkGetSofStall();
+  p_info->uptime_s        = millis() / 1000;
+}
+
+void usbHidResetLinkHealth(void)
+{
+  link_reset_count   = 0;
+  link_suspend_count = 0;
+  usbLinkResetSofStall();
+}
+
+void usbHidLinkOnReset(void)
+{
+  link_reset_count++;
+}
+
+void usbHidLinkOnSuspend(void)
+{
+  link_suspend_count++;
 }
 
 // 가장 최근에 측정된 키 입력 레이턴시(us)를 반환한다.

@@ -1,5 +1,6 @@
 #include "qmk.h"
 #include "qmk/port/port.h"
+#include "usbd_hid.h"
 
 
 static void cliQmk(cli_args_t *args);
@@ -35,6 +36,7 @@ void qmkUpdate(void)
   keyboard_task();
   eeprom_task();
   idle_task();
+  usbLinkFramePoll();   // USB SOF 순단 감지(FNSOF 폴링, 전송 영향 없음)
 }
 
 void keyboard_post_init_user(void)
@@ -86,6 +88,8 @@ void idle_task(void)
 #ifdef KKUK_ENABLE
   kkuk_idle();
 #endif
+
+  chattering_task();   // 채터링 점검 워치독(웹 명령 끊기면 자동 종료)
 }
 
 void cliQmk(cli_args_t *args)

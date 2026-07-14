@@ -52,6 +52,10 @@
 
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 void Error_Handler(void);
+
+// USB 링크 상태 카운터(usbd_hid.c). 변수 직접 참조 대신 함수로 갱신.
+void usbHidLinkOnReset(void);
+void usbHidLinkOnSuspend(void);
 static bool is_connected = false;
 static bool is_suspended = false;
 
@@ -81,6 +85,47 @@ bool USBD_is_suspended(void)
 {
   return is_suspended;
 }
+
+// USB 링크 SOF 순단 감지: 하드웨어 프레임번호(FNSOF)를 메인루프에서 폴링해
+// "구성/미서스펜드인데 프레임번호가 안 늘면" 실제 버스 정지로 카운트한다.
+// DSTS 레지스터 read 뿐이라 USB 전송에 영향 없음(락/부작용 없음).
+static uint32_t link_frame_prev = 0;
+static uint32_t link_frame_ms   = 0;
+static uint32_t link_sof_stall  = 0;
+static bool     link_stalled    = false;
+
+void usbLinkFramePoll(void)
+{
+  if (USBD_is_suspended() || !is_connected)
+  {
+    link_frame_ms = millis();
+    link_stalled  = false;
+    return;
+  }
+
+  uint32_t now = millis();
+  if ((now - link_frame_ms) < 4)   // 4ms 간격 폴링
+    return;
+  link_frame_ms = now;
+
+  uint32_t fn = USB_GetCurrentFrame(hpcd_USB_OTG_HS.Instance);
+  if (fn == link_frame_prev)
+  {
+    if (!link_stalled)             // 한 정지 구간을 1회로 카운트
+    {
+      link_sof_stall++;
+      link_stalled = true;
+    }
+  }
+  else
+  {
+    link_stalled = false;
+  }
+  link_frame_prev = fn;
+}
+
+uint32_t usbLinkGetSofStall(void)  { return link_sof_stall; }
+void     usbLinkResetSofStall(void){ link_sof_stall = 0; }
 
 /*******************************************************************************
                        LL Driver Callbacks (PCD -> USB Device Library)
@@ -240,6 +285,8 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 
   /* Reset Device. */
   USBD_LL_Reset((USBD_HandleTypeDef*)hpcd->pData);
+
+  usbHidLinkOnReset();   // USB 재열거(케이블 상태 지표)
 }
 
 /**
@@ -267,6 +314,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 
   is_connected = false;
   is_suspended = true;
+  usbHidLinkOnSuspend();   // USB 서스펜드 진입(케이블 상태 지표)
   logPrintf("[  ] USB Suspend\n");
   /* USER CODE END 2 */
 }

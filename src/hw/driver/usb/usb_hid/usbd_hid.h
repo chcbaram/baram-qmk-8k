@@ -162,12 +162,30 @@ typedef struct
   uint32_t time_min;
 } usb_hid_rate_info_t;
 
+// USB 링크(케이블) 상태 간접 지표. 전부 USB ISR/콜백에서만 갱신되므로 매트릭스/키 처리와 독립.
+// (SOF 갭/폴레이트는 이 플랫폼에서 콜백 주기가 불규칙해 신뢰 불가 → 제외. 재열거/서스펜드가 신뢰 지표.)
+typedef struct
+{
+  uint32_t reset_count;      // USB 버스 리셋(재열거) 횟수
+  uint32_t suspend_count;    // USB 서스펜드 진입 횟수
+  uint32_t sof_stall_count;  // 실제 버스 SOF 정지(하드웨어 프레임번호 미증가) 감지 횟수
+  uint32_t uptime_s;         // 부팅 이후 경과(초) - 리부트 감지용
+} usb_link_health_t;
+
 void usbHidFlush(void);
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);
 bool usbHidSendMouseReport(uint8_t buttons, int8_t x, int8_t y, int8_t wheel);
 bool usbHidGetRateInfo(usb_hid_rate_info_t *p_info);
+void usbHidGetLinkHealth(usb_link_health_t *p_info);
+void usbHidResetLinkHealth(void);
+void usbHidLinkOnReset(void);
+void usbHidLinkOnSuspend(void);
+// USB 링크 프레임 순단 감지 (usbd_conf.c 구현, 메인루프에서 usbLinkFramePoll 주기 호출)
+void     usbLinkFramePoll(void);
+uint32_t usbLinkGetSofStall(void);
+void     usbLinkResetSofStall(void);
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us);
 bool usbHidSetProcTime(uint32_t time_us);
 bool usbHidSetProcBreak(uint32_t scan_cyc, uint32_t decode_cyc, uint32_t anchor_cyc);

@@ -9,6 +9,7 @@
 #include "kkuk.h"
 #include "debounce_cfg.h"
 #include "hold_okp.h"
+#include "chattering.h"
 
 
 

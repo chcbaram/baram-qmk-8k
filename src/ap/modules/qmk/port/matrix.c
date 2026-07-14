@@ -8,6 +8,7 @@
 #include "cli.h"
 #include "usb.h"
 #include "keys.h"
+#include "chattering.h"
 
 
 /* matrix state(1:on, 0:off) */
@@ -118,6 +119,10 @@ uint8_t matrix_scan(void)
     }
   }
 
+  // 채터링 점검(웹에서 활성화 시에만): raw 전이를 memcpy 로 raw_matrix 갱신 전에 샘플링
+  if (chattering_is_enabled())
+    chattering_raw_scan(curr_matrix, raw_matrix, pre_time);
+
   changed = memcmp(raw_matrix, curr_matrix, sizeof(curr_matrix)) != 0;
   if (changed)
   {
@@ -156,6 +161,7 @@ uint8_t matrix_scan(void)
       usbHidSetProcBreak(scan_cyc, decode_cyc, DWT->CYCCNT);
     }
   }
+
   matrix_info();
 
   return (uint8_t)changed;
