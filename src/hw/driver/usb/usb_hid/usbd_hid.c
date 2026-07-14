@@ -1294,6 +1294,7 @@ void usbHidGetLinkHealth(usb_link_health_t *p_info)
   p_info->reset_count     = link_reset_count;
   p_info->suspend_count   = link_suspend_count;
   p_info->sof_stall_count = usbLinkGetSofStall();
+  p_info->sof_rate        = usbLinkGetSofRate();
   p_info->uptime_s        = millis() / 1000;
 }
 

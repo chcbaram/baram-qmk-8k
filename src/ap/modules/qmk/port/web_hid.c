@@ -225,6 +225,7 @@ static void venom_cmd_usb_health(uint8_t *data)
   VENOM_PUT16(h.suspend_count);
   VENOM_PUT16(h.sof_stall_count);
   VENOM_PUT16(h.uptime_s);
+  VENOM_PUT16(h.sof_rate);
 
   #undef VENOM_PUT16
 }

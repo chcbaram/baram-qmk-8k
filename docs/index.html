@@ -228,6 +228,7 @@
         <div class="stat"><div class="lbl" data-i18n="usbDisc" data-i18n-title="usbDisc_d">연결 끊김(웹)</div><div class="big"><span id="uDisc">0</span></div></div>
         <div class="stat"><div class="lbl" data-i18n="usbReset" data-i18n-title="usbReset_d">USB 재열거</div><div class="big"><span id="uReset">0</span></div><div class="sub" id="uResetCur"></div></div>
         <div class="stat"><div class="lbl" data-i18n="usbStall" data-i18n-title="usbStall_d">SOF 순단</div><div class="big"><span id="uStall">0</span></div></div>
+        <div class="stat"><div class="lbl" data-i18n="usbSofRate" data-i18n-title="usbSofRate_d">SOF/초</div><div class="big"><span id="uSofRate">—</span></div></div>
         <div class="stat"><div class="lbl" data-i18n="usbSuspend" data-i18n-title="usbSuspend_d">서스펜드</div><div class="big"><span id="uSuspend">0</span></div></div>
         <div class="stat"><div class="lbl" data-i18n="usbUptime" data-i18n-title="usbUptime_d">가동시간</div><div class="big"><span id="uUptime">—</span><small>s</small></div></div>
       </div>
@@ -295,14 +296,16 @@ const I18N = {
     chatterHint:"칸: 에러율% · ×작동수 · 최대지연ms. 에러율(디바운스 초과 비율)이 높을수록 붉게·교체권장. 키 클릭 시 아래 상세 통계.",
     chatterLegend:"채터 심각도", chatterLegend2:"낮음 → 높음",
     usbTitle:"USB 링크 상태", usbHint:"케이블/커넥터 상태 간접 지표. 값은 계속 누적됩니다(재연결에도 유지).",
-    usbDisc:"연결 끊김(웹)", usbReset:"USB 재열거", usbStall:"SOF 순단", usbSuspend:"서스펜드", usbUptime:"가동시간",
-    cKey:"키", cActs:"작동 수", cChatter:"바운스 관측", cRate:"에러율", cOver:"디바운스 초과",
+    usbDisc:"연결 끊김(웹)", usbReset:"USB 재열거", usbStall:"SOF 순단", usbSofRate:"SOF/초", usbSuspend:"서스펜드", usbUptime:"가동시간",
+    usbSofRate_d:"초당 수신 SOF 수(버스 프레임 심박). HS 정상 약 8000, FS 약 1000. 0이면 버스 정지. 폴링레이트와는 다름.",
+    cKey:"키", cActs:"작동 수", cChatter:"바운스 관측", cChatRate:"노화율", cRate:"에러율", cOver:"디바운스 초과",
     cMin:"최소 지연", cAvg:"평균 지연", cMax:"최대 지연", cLast:"최근 지연", cEdges:"노이즈(최대/최근)",
     cThresh:"판정 기준(디바운스)",
     vGood:"양호", vWarn:"주의", vBad:"교체권장", uBad:"불량",
     cActs_d:"이 키를 누른(0→1) 총 횟수.",
     cRate_d:"디바운스 초과 횟수 ÷ 작동 수. 더블입력이 발생할 수 있는 비율(노후율). 색상·판정의 기준.",
     cOver_d:"바운스가 디바운스 시간을 넘어 더블입력을 유발할 수 있었던 작동 횟수.",
+    cChatRate_d:"바운스 관측 ÷ 작동 수. 접점이 튀는 빈도(무해한 미세 바운스 포함). 마모 정도(노화) 지표 — 에러율과 달리 높아도 대부분 무해.",
     cChatter_d:"이 키를 누른 것 중 접점이 튄(노이즈 1 이상) 작동의 횟수. 예: 62번 중 14번 바운스. 빈도 지표.",
     cMin_d:"바운스가 가라앉기까지 걸린 시간(첫 엣지~마지막 엣지)의 최소값.",
     cAvg_d:"바운스 지속시간의 평균.",
@@ -343,14 +346,16 @@ const I18N = {
     chatterHint:"Cell: error rate% · ×actuations · max delay ms. Higher error rate (over-debounce ratio) = redder / replace. Click a key for details.",
     chatterLegend:"Chatter severity", chatterLegend2:"low → high",
     usbTitle:"USB Link Health", usbHint:"Indirect cable/connector indicators. Values keep accumulating (persist across reconnects).",
-    usbDisc:"Disconnects (web)", usbReset:"USB Re-enum", usbStall:"SOF Stalls", usbSuspend:"Suspends", usbUptime:"Uptime",
-    cKey:"Key", cActs:"Actuations", cChatter:"Bounce events", cRate:"Error rate", cOver:"Over debounce",
+    usbDisc:"Disconnects (web)", usbReset:"USB Re-enum", usbStall:"SOF Stalls", usbSofRate:"SOF/s", usbSuspend:"Suspends", usbUptime:"Uptime",
+    usbSofRate_d:"SOFs received per second (bus frame heartbeat). HS ~8000, FS ~1000. 0 = bus stalled. Not the same as polling rate.",
+    cKey:"Key", cActs:"Actuations", cChatter:"Bounce events", cChatRate:"Wear rate", cRate:"Error rate", cOver:"Over debounce",
     cMin:"Min delay", cAvg:"Avg delay", cMax:"Max delay", cLast:"Last delay", cEdges:"Noise (max/last)",
     cThresh:"Threshold (debounce)",
     vGood:"Good", vWarn:"Caution", vBad:"Replace", uBad:"Bad",
     cActs_d:"Total times this key was pressed (0→1).",
     cRate_d:"Over-debounce count ÷ actuations. Rate of presses that can cause a double input (wear). Basis for color/verdict.",
     cOver_d:"Actuations whose bounce exceeded the debounce time (could cause a double input).",
+    cChatRate_d:"Bounce events ÷ actuations. Bounce frequency (incl. harmless micro-bounces). A wear indicator — unlike error rate, high is usually still harmless.",
     cChatter_d:"How many actuations bounced (noise ≥ 1). e.g. 14 of 62 presses bounced. A frequency metric.",
     cMin_d:"Shortest settling time (first edge → last edge) of a bounce.",
     cAvg_d:"Average bounce duration.",
@@ -771,6 +776,7 @@ function buildChatterDetail(idx, row, col){
     + '<div class="grid">'
     + dcellStatic("cActs","dActs")
     + dcellStatic("cRate","dRate")
+    + dcellStatic("cChatRate","dChatRate")
     + dcellStatic("cOver","dOver")
     + dcellStatic("cChatter","dChatter")
     + dcellStatic("cMin","dMin")
@@ -801,6 +807,7 @@ async function pollChatterDetail(idx){
   setTxt("dRate", errRate.toFixed(1)+"%");
   setTxt("dOver", st.over);
   setTxt("dChatter", st.chatter);
+  setTxt("dChatRate", st.actuations ? (st.chatter/st.actuations*100).toFixed(1)+"%" : "—");
   setTxt("dMin", st.chatter?mm(st.min):"—");
   setTxt("dAvg", st.chatter?mm(st.avg):"—");
   setTxt("dMax", st.chatter?mm(st.max):"—");
@@ -829,7 +836,7 @@ function usbResetSession(){ usbSession={reset:0,suspend:0,stall:0}; usbLast={res
 async function pollUsbHealth(){
   const d = await sendCmd(SUB.USBH, [0]);
   const u16=(o)=> d.getUint8(o)|(d.getUint8(o+1)<<8);
-  const h = { reset:u16(3), suspend:u16(5), stall:u16(7), uptime:u16(9) };
+  const h = { reset:u16(3), suspend:u16(5), stall:u16(7), uptime:u16(9), sofRate:u16(11) };
   if (!usbSeen){
     // 세션 시작: 연결 전 발생분은 기준선으로만 잡고 누적은 0에서 시작
     usbLast.reset=h.reset; usbLast.suspend=h.suspend; usbLast.stall=h.stall; usbLast.uptime=h.uptime; usbSeen=true;
@@ -844,6 +851,7 @@ async function pollUsbHealth(){
   $("uResetCur").textContent= "now "+h.reset;
   $("uStall").textContent   = usbSession.stall;
   $("uSuspend").textContent = usbSession.suspend;
+  $("uSofRate").textContent = h.sofRate;
   $("uUptime").textContent  = h.uptime;
 
   // 3단계: 이벤트 0 → 양호, 소량 → 주의, 임계 이상 → 불량

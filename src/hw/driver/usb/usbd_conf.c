@@ -89,29 +89,59 @@ bool USBD_is_suspended(void)
 // USB 링크 SOF 순단 감지: 하드웨어 프레임번호(FNSOF)를 메인루프에서 폴링해
 // "구성/미서스펜드인데 프레임번호가 안 늘면" 실제 버스 정지로 카운트한다.
 // DSTS 레지스터 read 뿐이라 USB 전송에 영향 없음(락/부작용 없음).
-static uint32_t link_frame_prev = 0;
-static uint32_t link_frame_ms   = 0;
-static uint32_t link_sof_stall  = 0;
-static bool     link_stalled    = false;
+static uint32_t link_frame_prev  = 0;
+static uint32_t link_frame_ms    = 0;
+static uint32_t link_sof_stall   = 0;
+static bool     link_stalled     = false;
+static bool     link_frame_valid = false;
+static uint32_t link_sof_acc     = 0;   // 1초 윈도우 프레임 누적
+static uint32_t link_sof_win     = 0;
+static uint32_t link_sof_rate    = 0;   // 초당 SOF 수
 
 void usbLinkFramePoll(void)
 {
   if (USBD_is_suspended() || !is_connected)
   {
-    link_frame_ms = millis();
-    link_stalled  = false;
+    link_frame_ms    = millis();
+    link_stalled     = false;
+    link_frame_valid = false;   // 재개 시 첫 델타 무시
+    link_sof_acc     = 0;
+    link_sof_win     = 0;
     return;
   }
 
   uint32_t now = millis();
-  if ((now - link_frame_ms) < 4)   // 4ms 간격 폴링
+  uint32_t dt  = now - link_frame_ms;
+  if (dt < 4)   // 4ms 간격 폴링
     return;
   link_frame_ms = now;
 
-  uint32_t fn = USB_GetCurrentFrame(hpcd_USB_OTG_HS.Instance);
-  if (fn == link_frame_prev)
+  // 디바이스 모드 프레임번호(DSTS.FNSOF). USB_GetCurrentFrame 은 호스트(HFNUM)용이라 쓰면 안 됨.
+  uint32_t USBx_BASE = (uint32_t)hpcd_USB_OTG_HS.Instance;
+  uint32_t fn = (USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF_Msk) >> USB_OTG_DSTS_FNSOF_Pos;
+
+  if (!link_frame_valid)          // 첫 샘플은 기준만 잡는다
   {
-    if (!link_stalled)             // 한 정지 구간을 1회로 카운트
+    link_frame_prev  = fn;
+    link_frame_valid = true;
+    return;
+  }
+
+  // SOF 레이트: 프레임번호 증가분(14비트 wrap)을 1초 윈도우로 누적
+  uint32_t delta = (fn - link_frame_prev) & 0x3FFFu;
+  link_sof_acc += delta;
+  link_sof_win += dt;
+  if (link_sof_win >= 1000u)
+  {
+    link_sof_rate = link_sof_acc * 1000u / link_sof_win;
+    link_sof_acc  = 0;
+    link_sof_win  = 0;
+  }
+
+  // 순단: 프레임번호가 안 늘면 실제 버스 정지
+  if (delta == 0)
+  {
+    if (!link_stalled)            // 한 정지 구간을 1회로 카운트
     {
       link_sof_stall++;
       link_stalled = true;
@@ -126,6 +156,7 @@ void usbLinkFramePoll(void)
 
 uint32_t usbLinkGetSofStall(void)  { return link_sof_stall; }
 void     usbLinkResetSofStall(void){ link_sof_stall = 0; }
+uint32_t usbLinkGetSofRate(void)   { return link_sof_rate; }
 
 /*******************************************************************************
                        LL Driver Callbacks (PCD -> USB Device Library)

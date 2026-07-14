@@ -169,6 +169,7 @@ typedef struct
   uint32_t reset_count;      // USB 버스 리셋(재열거) 횟수
   uint32_t suspend_count;    // USB 서스펜드 진입 횟수
   uint32_t sof_stall_count;  // 실제 버스 SOF 정지(하드웨어 프레임번호 미증가) 감지 횟수
+  uint32_t sof_rate;         // 초당 수신 SOF 수(버스 프레임 심박; HS ~8000, FS ~1000)
   uint32_t uptime_s;         // 부팅 이후 경과(초) - 리부트 감지용
 } usb_link_health_t;
 
@@ -186,6 +187,7 @@ void usbHidLinkOnSuspend(void);
 void     usbLinkFramePoll(void);
 uint32_t usbLinkGetSofStall(void);
 void     usbLinkResetSofStall(void);
+uint32_t usbLinkGetSofRate(void);
 bool usbHidSetTimeLog(uint16_t index, uint32_t time_us);
 bool usbHidSetProcTime(uint32_t time_us);
 bool usbHidSetProcBreak(uint32_t scan_cyc, uint32_t decode_cyc, uint32_t anchor_cyc);
