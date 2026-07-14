@@ -151,6 +151,16 @@
               "content": ["id_qmk_debounce_time", 13, 2]
             }
           ]
+        },
+        {
+          "label": "QMK",
+          "content": [
+            {
+              "label": "Hold On Other Key Press",
+              "type": "toggle",
+              "content": ["id_qmk_hold_okp_enable", 14, 1]
+            }
+          ]
         }
       ]
     },    

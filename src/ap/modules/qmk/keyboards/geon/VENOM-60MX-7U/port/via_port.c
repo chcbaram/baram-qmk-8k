@@ -57,6 +57,13 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length)
     return;
   }
 #endif
+#ifdef HOLD_OKP_RUNTIME
+  if (*channel_id == id_qmk_hold_okp)
+  {
+    via_qmk_hold_okp_command(data, length);
+    return;
+  }
+#endif
 
   // Return the unhandled state
   *command_id = id_unhandled;

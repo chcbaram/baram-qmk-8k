@@ -8,6 +8,7 @@
 #include "kill_switch.h"
 #include "kkuk.h"
 #include "debounce_cfg.h"
+#include "hold_okp.h"
 
 
 
@@ -20,3 +21,4 @@
 #define EECONFIG_USER_KILL_SWITCH_UD  ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 16)) // 8B
 #define EECONFIG_USER_KKUK            ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 24)) // 4B
 #define EECONFIG_USER_DEBOUNCE        ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 28)) // 4B
+#define EECONFIG_USER_HOLD_OKP        ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 32)) // 4B

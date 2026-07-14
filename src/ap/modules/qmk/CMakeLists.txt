@@ -34,6 +34,15 @@ else()
 endif()
 
 
+# HOLD_ON_OTHER_KEY_PRESS 를 VIA 에서 런타임 on/off 하려면 HOLD_OKP_RUNTIME 를 켠다.
+# 이 경우 per-key 콜백 경로(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)를 활성화하고
+# port/hold_okp.c 가 strong get_hold_on_other_key_press() 로 EEPROM 값을 반환한다.
+if (HOLD_OKP_RUNTIME)
+  add_compile_definitions(HOLD_OKP_RUNTIME)
+  add_compile_definitions(HOLD_ON_OTHER_KEY_PRESS_PER_KEY)
+endif()
+
+
 # 지정한 폴더에 있는 파일만 포함한다.
 #
 file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS

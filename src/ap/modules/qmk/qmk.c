@@ -48,6 +48,9 @@ void keyboard_post_init_user(void)
 #ifdef DEBOUNCE_RUNTIME
   debounce_cfg_init();
 #endif
+#ifdef HOLD_OKP_RUNTIME
+  hold_okp_init();
+#endif
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
