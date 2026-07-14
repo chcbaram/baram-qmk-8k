@@ -29,6 +29,8 @@
 #define USE_MKEY_SCAN
 // 샘플 지연 CCR2(TIM3 count, 6.25ns): 창 중앙 50%=64(양쪽 최대 이격). 90%=115은 다중키 고스팅.
 #define MKEY_SAMPLE_CCR             64
+// 정적 정렬 보정(순환): 프레임=16 기준(7U와 동일 위상 가정). 어긋나면 실측 (기존+M-P)%16.
+#define MKEY_COL_SHIFT              7
 
 #define DEBOUNCE                    20
 

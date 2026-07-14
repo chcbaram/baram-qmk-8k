@@ -24,6 +24,13 @@
 #define MATRIX_ROWS                 6
 #define MATRIX_COLS                 16
 
+// GPIO+DMA 로우 캡처(mkey) 시험 — 80MX는 6-row라 dual-port(GPIOC row0~4 + GPIOB PB6=row5).
+#define USE_MKEY_SCAN
+// 샘플 지연 CCR2: 창 중앙 50%=64. 60%=77,75%=96.
+#define MKEY_SAMPLE_CCR             64
+// 정적 정렬 보정(순환): 실측 후 확정. 물리P→outM 관측 → (기존+M-P)%16. 우선 기본.
+#define MKEY_COL_SHIFT              7
+
 #define DEBOUNCE                    20
 
 #define DEBUG_MATRIX_SCAN_RATE

@@ -9,6 +9,11 @@
 
 #define MKEY_BUF_MAX        32
 
+// 캡처 프레임 길이 = SPI 워드(16bit) = 프레임당 SCK/CC2 = 74HC164 컬럼수 = 16.
+// 캡처 block은 MATRIX_COLS가 아니라 이 값에 묶어야 함(COLS<16 보드도 매프레임 16캡처).
+// decode는 앞 MATRIX_COLS만 사용.
+#define MKEY_FRAME_LEN      16
+
 // TIM3 자유진행 주기 = SCK 주기 = SYSCLK(160M)/BaudPrescaler(128) = 128 TIM count → ARR=127.
 // (SPI BaudRatePrescaler 변경 시 함께 조정)
 #ifndef MKEY_TIM_ARR
@@ -31,6 +36,9 @@
 static void cliCmd(cli_args_t *args);
 static bool mkeyInitTim(void);
 static bool mkeyInitDma(void);
+#if MATRIX_ROWS >= 6
+static bool mkeyInitDmaB(void);   // 80MX: ROW5=PB6=GPIOB 2번째 캡처 채널
+#endif
 static bool mkeySpiStart(void);
 static void mkeyDecode(uint8_t *p_data, uint32_t length);
 
@@ -46,6 +54,14 @@ static DMA_HandleTypeDef  handle_GPDMA1_Channel3;
 
 // 캡처 원본: SCK 에지당 GPIOC->IDR 1워드. 인덱스=컬럼.
 static uint32_t mkey_idr_buf[MKEY_BUF_MAX];
+
+#if MATRIX_ROWS >= 6
+// 80MX 6-row: ROW5=PB6=GPIOB. TIM3 CC3(같은 CCR) request로 GPIOB->IDR 동시 캡처.
+static DMA_NodeTypeDef    Node_GPDMA1_Channel6;
+static DMA_QListTypeDef   List_GPDMA1_Channel6;
+static DMA_HandleTypeDef  handle_GPDMA1_Channel6;
+static uint32_t mkey_idr_buf_b[MKEY_BUF_MAX];
+#endif
 static uint32_t mkey_dma_pre_time = 0;
 static uint32_t mkey_dma_exe_time = 0;
 static bool     mkey_dma_req      = false;
@@ -65,8 +81,14 @@ bool mkeyInit(void)
 
   mkeyInitTim();
   mkeyInitDma();
+#if MATRIX_ROWS >= 6
+  mkeyInitDmaB();
+#endif
 
   memset(mkey_idr_buf, 0xFF, sizeof(mkey_idr_buf));
+#if MATRIX_ROWS >= 6
+  memset(mkey_idr_buf_b, 0xFF, sizeof(mkey_idr_buf_b));
+#endif
 
   mkeySpiStart();   // SPI 먼저 기동 → CH1_TCF(프레임 경계) 발생 시작
 
@@ -87,6 +109,12 @@ bool mkeyInit(void)
   {
     Error_Handler();
   }
+#if MATRIX_ROWS >= 6
+  if (HAL_DMAEx_List_Start(&handle_GPDMA1_Channel6) != HAL_OK)   // GPIOB 캡처 arm
+  {
+    Error_Handler();
+  }
+#endif
 
   delay(2);
 
@@ -143,13 +171,20 @@ static void mkeyDecode(uint8_t *p_data, uint32_t length)
     uint32_t src = col + MKEY_COL_SHIFT;
     uint32_t idr;
 
-    if (src >= MATRIX_COLS)                 // % 대신 compare-sub (SHIFT < COLS 보장)
-      src -= MATRIX_COLS;
+    if (src >= MKEY_FRAME_LEN)              // 버퍼는 16-wide, 순환 보정 (SHIFT<16)
+      src -= MKEY_FRAME_LEN;
 
     idr = mkey_idr_buf[src];
 
-    // GPIOC IDR: row0..3 = bit6..9(연속), row4 = bit11 → 출력 bit0..4, 상위(row5..7)=1
+    // GPIOC IDR: row0..3 = bit6..9(연속), row4 = bit11 → 출력 bit0..4
+#if MATRIX_ROWS >= 6
+    // 80MX: row5 = GPIOB bit6(PB6). 상위(row6,7)=1
+    p_data[col] = 0xC0 | ((idr >> 6) & 0x0F) | ((idr >> 7) & 0x10)
+                | (((mkey_idr_buf_b[src] >> 6) & 1) << 5);
+#else
+    // 60MX 5-row: 상위(row5..7)=1
     p_data[col] = 0xE0 | ((idr >> 6) & 0x0F) | ((idr >> 7) & 0x10);
+#endif
   }
 }
 
@@ -184,6 +219,16 @@ bool mkeyInitTim(void)
   }
 
   __HAL_TIM_ENABLE_DMA(&htim3, TIM_DMA_CC2);
+
+#if MATRIX_ROWS >= 6
+  // GPIOB 캡처용 2번째 컴페어(CH3, 같은 CCR) → CC3 DMA req로 GPIOC와 동시 캡처
+  if (HAL_TIM_OC_ConfigChannel(&htim3, &sOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  __HAL_TIM_ENABLE_DMA(&htim3, TIM_DMA_CC3);
+#endif
+
   HAL_TIM_Base_Start(&htim3);
 
   return true;
@@ -225,7 +270,7 @@ bool mkeyInitDma(void)
   NodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
   NodeConfig.SrcAddress                     = (uint32_t)&GPIOC->IDR;
   NodeConfig.DstAddress                     = (uint32_t)mkey_idr_buf;
-  NodeConfig.DataSize                       = MATRIX_COLS * 4;   // words → bytes
+  NodeConfig.DataSize                       = MKEY_FRAME_LEN * 4;   // 프레임=16 캡처(COLS<16도)
   if (HAL_DMAEx_List_BuildNode(&NodeConfig, &Node_GPDMA1_Channel3) != HAL_OK)
   {
     Error_Handler();
@@ -273,6 +318,90 @@ bool mkeyInitDma(void)
 
   return true;
 }
+
+#if MATRIX_ROWS >= 6
+// 80MX 6-row: GPIOB->IDR 캡처(Ch6). ROW5=PB6. TIM3 CC3(같은 CCR)로 GPIOC와 동시.
+bool mkeyInitDmaB(void)
+{
+  DMA_NodeConfTypeDef    NodeConfig    = {0};
+  DMA_TriggerConfTypeDef TriggerConfig = {0};
+  GPIO_InitTypeDef       GPIO_InitStruct = {0};
+
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  // PB6 = ROW5 입력 (외부 1kΩ 풀업)
+  GPIO_InitStruct.Pin   = GPIO_PIN_6;
+  GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull  = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  NodeConfig.NodeType                       = DMA_GPDMA_LINEAR_NODE;
+  NodeConfig.Init.Request                   = GPDMA1_REQUEST_TIM3_CH3;
+  NodeConfig.Init.BlkHWRequest              = DMA_BREQ_SINGLE_BURST;
+  NodeConfig.Init.Direction                 = DMA_PERIPH_TO_MEMORY;
+  NodeConfig.Init.SrcInc                    = DMA_SINC_FIXED;
+  NodeConfig.Init.DestInc                   = DMA_DINC_INCREMENTED;
+  NodeConfig.Init.SrcDataWidth              = DMA_SRC_DATAWIDTH_WORD;
+  NodeConfig.Init.DestDataWidth             = DMA_DEST_DATAWIDTH_WORD;
+  NodeConfig.Init.SrcBurstLength            = 1;
+  NodeConfig.Init.DestBurstLength           = 1;
+  NodeConfig.Init.TransferAllocatedPort     = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT1;
+  NodeConfig.Init.TransferEventMode         = DMA_TCEM_BLOCK_TRANSFER;
+  NodeConfig.Init.Mode                      = DMA_NORMAL;
+  NodeConfig.TriggerConfig.TriggerPolarity  = DMA_TRIG_POLARITY_MASKED;
+  NodeConfig.DataHandlingConfig.DataExchange  = DMA_EXCHANGE_NONE;
+  NodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_RIGHTALIGN_ZEROPADDED;
+  NodeConfig.SrcAddress                     = (uint32_t)&GPIOB->IDR;
+  NodeConfig.DstAddress                     = (uint32_t)mkey_idr_buf_b;
+  NodeConfig.DataSize                       = MKEY_FRAME_LEN * 4;
+  if (HAL_DMAEx_List_BuildNode(&NodeConfig, &Node_GPDMA1_Channel6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_DMAEx_List_InsertNode(&List_GPDMA1_Channel6, NULL, &Node_GPDMA1_Channel6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_DMAEx_List_SetCircularMode(&List_GPDMA1_Channel6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  handle_GPDMA1_Channel6.Instance                         = GPDMA1_Channel6;
+  handle_GPDMA1_Channel6.InitLinkedList.Priority          = DMA_LOW_PRIORITY_LOW_WEIGHT;
+  handle_GPDMA1_Channel6.InitLinkedList.LinkStepMode      = DMA_LSM_FULL_EXECUTION;
+  handle_GPDMA1_Channel6.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT1;
+  handle_GPDMA1_Channel6.InitLinkedList.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+  handle_GPDMA1_Channel6.InitLinkedList.LinkedListMode    = DMA_LINKEDLIST_CIRCULAR;
+  if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel6, &List_GPDMA1_Channel6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  TriggerConfig.TriggerMode      = DMA_TRIGM_BLOCK_TRANSFER;
+  TriggerConfig.TriggerPolarity  = DMA_TRIG_POLARITY_RISING;
+  TriggerConfig.TriggerSelection = GPDMA1_TRIGGER_GPDMA1_CH1_TCF;
+  if (HAL_DMAEx_ConfigTrigger(&handle_GPDMA1_Channel6, &TriggerConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel6, DMA_CHANNEL_NPRIV) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  return true;
+}
+#endif
 
 void GPDMA1_Channel3_IRQHandler(void)
 {
