@@ -36,6 +36,7 @@ void qmkUpdate(void)
   keyboard_task();
   eeprom_task();
   idle_task();
+  usbHidFlush();        // TIM2(SOF 종속)/DataIn 이 멈춰도 큐가 비워지도록 하는 폴백
   usbLinkFramePoll();   // USB SOF 순단 감지(FNSOF 폴링, 전송 영향 없음)
 }
 

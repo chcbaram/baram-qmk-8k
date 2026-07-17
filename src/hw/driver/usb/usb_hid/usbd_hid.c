@@ -107,6 +107,20 @@ typedef struct
   uint8_t buf[HID_EXK_EP_SIZE];
 } exk_report_info_t;
 
+// 측정 시각을 리포트마다 들고 다닌다. 전역 스칼라로 두면 큐에 리포트가 밀렸을 때
+// DataIn 이 완료된 리포트를 더 나중 스캔의 시각과 짝지어 언더플로우한다.
+typedef struct
+{
+  uint8_t  buf[HID_KEYBOARD_REPORT_SIZE];
+  uint32_t time_pre;
+  uint32_t raw_pre;
+  uint32_t proc_pre;
+  uint32_t qmk_cyc;
+  bool     raw_req;
+  bool     proc_req;
+  bool     qmk_req;
+} kbd_report_info_t;
+
 static USBD_SetupReqTypedef ep0_req;
 static uint8_t ep0_req_buf[USB_MAX_EP0_SIZE];
 
@@ -119,8 +133,8 @@ static void (*via_hid_receive_func)(uint8_t *data, uint8_t length) = NULL;
 
 
 __ALIGN_BEGIN  static uint8_t hid_buf[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
-__ALIGN_BEGIN  static volatile uint8_t kbd_report[HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
-static volatile bool          kbd_report_req = false;
+static qbuffer_t              report_kbd_q;
+static kbd_report_info_t      report_kbd_buf[128];
 static volatile bool          kbd_ep_busy    = false;
 
 static qbuffer_t              report_exk_q;
@@ -565,6 +579,7 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
     qbufferCreateBySize(&via_report_q, (uint8_t *)via_report_q_buf, sizeof(via_report_info_t), 128);
     qbufferCreateBySize(&report_exk_q, (uint8_t *)report_exk_buf, sizeof(exk_report_info_t), 128);
+    qbufferCreateBySize(&report_kbd_q, (uint8_t *)report_kbd_buf, sizeof(kbd_report_info_t), 128);
 
     logPrintf("[OK] USB Hid\n");
     logPrintf("     Keyboard\n");
@@ -1016,6 +1031,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   if (epnum == (HID_EXK_EP_IN & 0x0F))
   {
     exk_ep_busy = false;
+    usbHidFlush();
     return (uint8_t)USBD_OK;
   }
 
@@ -1028,6 +1044,7 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   data_in_cnt++;
 
   usbHidMeasureRateTime();
+  usbHidFlush();
 
   return (uint8_t)USBD_OK;
 }
@@ -1116,25 +1133,45 @@ bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t))
   return true;
 }
 
+// 리포트는 큐에만 넣는다. 여기서 직접 전송하면 큐에 밀린 리포트를 추월해
+// 순서가 뒤집히고, 절대상태인 HID 리포트는 오래된 상태로 굳어버린다.
 bool usbHidSendReport(uint8_t *p_data, uint16_t length)
 {
+  kbd_report_info_t report_info;
+
   if (length > HID_KEYBOARD_REPORT_SIZE)
     return false;
 
   if (!USBD_is_suspended())
   {
+    memset(report_info.buf, 0, sizeof(report_info.buf));
+    memcpy(report_info.buf, p_data, length);
+    report_info.time_pre = micros();
+    report_info.qmk_cyc  = DWT->CYCCNT - key_break_anchor;
+
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    memcpy((void *)kbd_report, p_data, length);
-    key_time_pre   = micros();
-    key_time_req   = true;
-    kbd_report_req = true;
-    if (key_break_req)      // qmk = matrix_scan 종료 -> 리포트 큐잉 (순수 QMK 처리)
+    report_info.qmk_req  = key_break_req;   // qmk = matrix_scan 종료 -> 리포트 큐잉
+    report_info.raw_req  = key_time_raw_req;
+    report_info.raw_pre  = key_time_raw_pre;
+    report_info.proc_req = key_time_proc_req;
+    report_info.proc_pre = key_time_proc_pre;
+    key_break_req     = false;
+    key_time_raw_req  = false;
+    key_time_proc_req = false;
+
+    if (!qbufferWrite(&report_kbd_q, (uint8_t *)&report_info, 1))
     {
-      key_break_qmk_cyc = DWT->CYCCNT - key_break_anchor;
-      key_break_req = false;
+      // 큐가 차면 가장 오래된 것을 버린다. 최신 리포트를 버리면 호스트가 낡은
+      // 상태(눌림)로 굳어 자동 반복이 걸리고 영영 복구되지 않는다.
+      kbd_report_info_t drop;
+
+      qbufferRead(&report_kbd_q, (uint8_t *)&drop, 1);
+      qbufferWrite(&report_kbd_q, (uint8_t *)&report_info, 1);
     }
     __set_PRIMASK(primask);
+
+    usbHidFlush();
   }
   else
   {
@@ -1444,16 +1481,44 @@ void TIM2_IRQHandler(void)
 volatile int timer_cnt = 0;
 volatile uint32_t timer_end = 0;
 
+// 메인 루프 / DataIn / TIM2 ISR 에서 모두 호출된다. ep_busy 가드 안에서
+// 가장 오래된 것 하나만 꺼내므로 몇 번을 호출하든 멱등이고 순서도 보존된다.
+// TIM2(SOF 종속) 가 멈춰도 나머지 두 경로가 큐를 비운다.
 void usbHidFlush(void)
 {
-  if (kbd_report_req && !kbd_ep_busy)
+  if (qbufferAvailable(&report_kbd_q) == 0 && qbufferAvailable(&report_exk_q) == 0)
   {
-    memcpy(hid_buf, (const void *)kbd_report, HID_KEYBOARD_REPORT_SIZE);
-    kbd_report_req = false;
+    return;   // 메인 루프에서 매 반복 호출되므로 임계구역 진입 전에 빠진다
+  }
 
-    rate_time_req = true;
-    rate_time_pre = micros();
-    USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE);
+  uint32_t primask = __get_PRIMASK();
+  __disable_irq();
+
+  if (qbufferAvailable(&report_kbd_q) > 0 && !kbd_ep_busy)
+  {
+    kbd_report_info_t report_info;
+
+    qbufferRead(&report_kbd_q, (uint8_t *)&report_info, 1);
+    memcpy(hid_buf, report_info.buf, HID_KEYBOARD_REPORT_SIZE);
+
+    // 전송이 거절되면(미CONFIGURED) DataIn 이 오지 않으므로 측정 플래그를 세우지
+    // 않는다. 세워두면 다음 리포트의 DataIn 이 죽은 리포트의 시각으로 계산한다.
+    if (USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE))
+    {
+      key_time_pre      = report_info.time_pre;
+      key_time_req      = true;
+      key_time_raw_req  = report_info.raw_req;
+      key_time_raw_pre  = report_info.raw_pre;
+      key_time_proc_req = report_info.proc_req;
+      key_time_proc_pre = report_info.proc_pre;
+      if (report_info.qmk_req)
+      {
+        key_break_qmk_cyc = report_info.qmk_cyc;
+      }
+
+      rate_time_req = true;
+      rate_time_pre = micros();
+    }
   }
 
   if (qbufferAvailable(&report_exk_q) > 0 && !exk_ep_busy)
@@ -1464,6 +1529,8 @@ void usbHidFlush(void)
     memcpy(hid_buf_exk, report_info.buf, report_info.len);
     USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, report_info.len);
   }
+
+  __set_PRIMASK(primask);
 }
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
