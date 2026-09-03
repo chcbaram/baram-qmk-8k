@@ -43,7 +43,9 @@ extern "C" {
 #define HID_EP_SIZE                                     64U
 
 #define HID_EPIN_ADDR                                   0x81U
-#define HID_EPIN_SIZE                                   64U
+// IF0 은 부트 서브클래스다. 부트 프로토콜 리포트는 8바이트로 규정되어 있고
+// BIOS 는 리포트 기술자를 안 읽으므로 엔드포인트도 8로 맞춘다.
+#define HID_EPIN_SIZE                                   8U
 
 #define HID_VIA_EP_IN                                   0x84U
 #define HID_VIA_EP_OUT                                  0x04U
@@ -59,7 +61,7 @@ extern "C" {
 #define HID_MOUSE_REPORT_DESC_SIZE                      74U
 #define HID_KEYBOARD_REPORT_DESC_SIZE                   64U
 #define HID_KEYBOARD_VIA_REPORT_DESC_SIZE               34U
-#define HID_EXK_REPORT_DESC_SIZE                        104U
+#define HID_EXK_REPORT_DESC_SIZE                        152U
 
 #define HID_DESCRIPTOR_TYPE                             0x21U
 #define HID_REPORT_DESC                                 0x22U
@@ -174,6 +176,12 @@ typedef struct
 } usb_link_health_t;
 
 void usbHidFlush(void);
+// 호스트가 SET_PROTOCOL 로 정한 값. 0=부트(BIOS), 1=리포트(OS).
+uint8_t usbHidGetProtocol(void);
+// 키 리포트가 지금 어느 인터페이스로 나가는가. true=IF0 부트 8바이트, false=IF2 확장 20키.
+bool    usbHidIsBootRoute(void);
+// 시험용. 부트 프로토콜을 요구하는 것은 BIOS 뿐이라 책상에서는 재현할 방법이 없다.
+void    usbHidSetProtocolTest(uint8_t protocol);
 bool usbHidSetViaReceiveFunc(void (*func)(uint8_t *, uint8_t));
 bool usbHidSendReport(uint8_t *p_data, uint16_t length);
 bool usbHidSendReportEXK(uint8_t *p_data, uint16_t length);

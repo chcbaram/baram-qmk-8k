@@ -293,7 +293,8 @@ uint8_t  USBD_CMPSIT_AddToConfDesc(USBD_HandleTypeDef *pdev)
 
       /* Set IN endpoint slot */
       iEp = pdev->tclasslist[pdev->classId].EpAdd[0];
-      USBD_CMPSIT_AssignEp(pdev, iEp, USBD_EP_TYPE_INTR, pdev->tclasslist[pdev->classId].CurrPcktSze);
+      /* IF0 은 부트 키보드다. 리포트가 8바이트라 EP 도 8로 맞춘다 (기술자와 동일). */
+      USBD_CMPSIT_AssignEp(pdev, iEp, USBD_EP_TYPE_INTR, HID_EPIN_SIZE);
 
       /* Set VIA IN endpoint slot */
       iEp = pdev->tclasslist[pdev->classId].EpAdd[1];
@@ -903,11 +904,18 @@ static void  USBD_CMPSIT_HIDKeyboardDesc(USBD_HandleTypeDef *pdev, uint32_t pCon
   // EXK
   //
   /* Append HID Interface descriptor to Configuration descriptor */
+  /*
+   * ★ 부트 서브클래스가 아니다.
+   *
+   *   subclass 1 로 두면 BIOS 가 이걸 부트 인터페이스로 보고 잡을 수 있다. 여기에는
+   *   확장 키보드(20키)·시스템·컨슈머·마우스가 리포트 ID 로 얹혀 있어 부트 프로토콜
+   *   형식과 전혀 다르다. 부트를 아는 것은 IF0 하나뿐이어야 한다.
+   */
   __USBD_CMPSIT_SET_IF(pdev->tclasslist[pdev->classId].Ifs[2],
                        0U,     /* bAlternateSetting: Alternate setting */
                        1U,     /* bNumEndpoints */
                        0x03U,  /* bInterfaceClass: HID */
-                       0x01U,  /* bInterfaceSubClass : 1=BOOT, 0=no boot */
+                       0x00U,  /* bInterfaceSubClass : 1=BOOT, 0=no boot */
                        0x00U,  /* nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse */
                        0x00U); /* iInterface: Index of string descriptor */
 
