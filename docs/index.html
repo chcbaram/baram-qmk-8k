@@ -990,7 +990,12 @@ async function loadReleases(){
     if (!res.ok) throw new Error("HTTP " + res.status);
     const all = await res.json();
     // 우리 zip 에셋(VENOM-*.zip)이 있는 릴리즈만 노출 (구버전/비호환 릴리즈 제외)
+    //
+    // pre-release 는 뺀다. 시험용으로 올린 것에 zip 을 붙이면 검증 전 펌웨어가 목록
+    // 맨 위(기본 선택)로 올라와 방문자 전원에게 최신으로 보인다. 노출 여부를 에셋
+    // 이름이 아니라 릴리즈 플래그로 정한다.
     releases = (Array.isArray(all) ? all : [])
+      .filter(r => !r.prerelease && !r.draft)
       .filter(r => (r.assets || []).some(a => REL_ASSET_RE.test(a.name)));
     if (releases.length === 0){ relState = "none"; refreshFirmwarePanel(); return; }
     const sel = $("relSelect");
