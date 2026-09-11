@@ -33,6 +33,28 @@ bool qmkInit(void)
 
 void qmkUpdate(void)
 {
+  /*
+   * ★ 키 리포트가 나가는 인터페이스가 갈리면 눌린 키를 비운다.
+   *
+   *   부트(IF0 8바이트) <-> 확장(IF2 20키) 으로 갈리면 리포트가 나가는 인터페이스가
+   *   통째로 바뀐다. 그때 눌려 있던 키는 옛 인터페이스에 남은 채로 QMK 쪽에서도
+   *   눌린 것으로 남는다.
+   *
+   *   USB 층은 옛 인터페이스에 0 리포트를 내보내는 것까지만 한다. 값 변화를 보고
+   *   QMK 상태를 비우는 것은 여기서 한다 - 그쪽은 제어 전송/ISR 안이다.
+   */
+  {
+    static bool route_boot_p = true;
+    bool        route_boot   = usbHidIsBootRoute();
+
+    if (route_boot != route_boot_p)
+    {
+      route_boot_p = route_boot;
+      clear_keyboard();
+      logPrintf("[  ] HID 키 경로 %s\n", route_boot ? "IF0 boot 6KRO" : "IF2 ext 20KRO");
+    }
+  }
+
   keyboard_task();
   eeprom_task();
   idle_task();

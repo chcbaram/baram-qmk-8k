@@ -63,6 +63,13 @@
 
 
 #define HID_KEYBOARD_REPORT_SIZE (HW_KEYS_PRESS_MAX + 2U)
+#define HID_KEYBOARD_BOOT_SIZE   (HW_KEYS_BOOT_MAX + 2U)
+
+// 리포트가 EP 를 넘으면 조용히 안 나간다. 키 수를 손댈 때 빌드에서 잡는다.
+_Static_assert(HID_KEYBOARD_BOOT_SIZE <= HID_EPIN_SIZE,
+               "부트 리포트가 IF0 엔드포인트보다 크다");
+_Static_assert((1U + HID_KEYBOARD_REPORT_SIZE) <= HID_EXK_EP_SIZE,
+               "확장 키 리포트가 IF2 엔드포인트보다 크다");
 #define KEY_TIME_LOG_MAX         32
 
 
@@ -91,6 +98,10 @@ static void usbHidMeasurePollRate(void);
 static void usbHidMeasureRateTime(void);
 static bool usbHidUpdateWakeUp(USBD_HandleTypeDef *pdev);
 static void usbHidInitTimer(void);
+static bool usbHidTransmitKbd(bool is_boot, const uint8_t *state);
+static bool usbHidKbdEpBusy(void);
+static void usbHidUpdateRoute(void);
+static bool usbHidWantBootRoute(void);
 
 
 
@@ -141,6 +152,37 @@ static qbuffer_t              report_exk_q;
 static exk_report_info_t      report_exk_buf[128];
 __ALIGN_BEGIN  static uint8_t hid_buf_exk[HID_EXK_EP_SIZE] __ALIGN_END = {0,};
 static volatile bool          exk_ep_busy    = false;
+
+// 확장 경로의 키 리포트는 EXK 와 같은 EP 로 나간다. 전송 버퍼를 나눠 두면 어느 쪽이
+// 실려 있든 DMA 가 읽는 메모리가 섞이지 않는다.
+__ALIGN_BEGIN  static uint8_t hid_buf_extk[1 + HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
+
+/*
+ * ── 부트 프로토콜 경로 ──────────────────────────────────────────────────
+ *
+ * IF0 은 부트 서브클래스라 8바이트(mods, reserved, keys[6]) 만 낼 수 있다.
+ * 20키 롤오버는 비부트인 IF2 의 확장 컬렉션으로 나간다. 둘을 동시에 내면 호스트가
+ * 같은 키를 두 번 받으므로 한 번에 한쪽만 쓴다.
+ *
+ * 어느 쪽을 쓸지는 두 신호로 정한다.
+ *   kbd_protocol   : 호스트가 SET_PROTOCOL 로 정한다. 0=부트, 1=리포트 (기본 1)
+ *   extk_desc_read : IF2 의 리포트 기술자를 요청받았다 = OS 급 호스트가 열거했다
+ *
+ * ★ SET_PROTOCOL 만 보면 모자란다. 부트를 가정하고 SET_PROTOCOL 을 아예 안 보내는
+ *   BIOS 가 있고, 그런 호스트에서는 IF0 이 조용해진다. 기술자 요청까지 함께 봐야
+ *   그 경우도 IF0 을 받는다 - BIOS 는 비부트 인터페이스의 기술자를 읽지 않는다.
+ */
+static volatile uint8_t       kbd_protocol       = 1;
+static volatile bool          extk_desc_read     = false;
+static volatile bool          route_is_boot      = true;   // 열거 전에는 부트가 안전하다
+static volatile bool          extk_kbd_in_flight = false;  // EXK EP 에 실린 것이 키 리포트인가
+
+// 마지막으로 실은 키 상태(22바이트). GET_REPORT 응답과 경로 전환에 쓴다.
+static uint8_t                kbd_state_last[HID_KEYBOARD_REPORT_SIZE] = {0,};
+
+// EP0 응답 버퍼. USBD_CtlSendData 는 포인터만 들고 가므로 스택을 넘기면 안 된다.
+__ALIGN_BEGIN  static uint8_t ep0_rep_buf[1 + HID_KEYBOARD_REPORT_SIZE] __ALIGN_END = {0,};
+static uint8_t                ep0_protocol_buf = 1;
 
 
 
@@ -386,7 +428,15 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE] __
 };
 #endif
 
-__ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SIZE] __ALIGN_END =
+/*
+ * IF0 - 부트 키보드. HID 1.11 Appendix B 가 정한 8바이트 형식 그대로다.
+ *
+ * BIOS/UEFI 는 이 기술자를 읽지 않는다. SET_PROTOCOL(0) 을 걸고 고정 8바이트
+ * (mods, reserved, keys[6]) 를 읽을 뿐이다. 그래서 여기에 20키를 넣으면 규격을
+ * 벗어나고, 8바이트만 받을 준비를 한 호스트에서는 키가 아예 안 먹는다.
+ * 20키 롤오버는 IF2 의 확장 컬렉션이 담당한다.
+ */
+__ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[] __ALIGN_END =
 {
   0x05, 0x01,                         // USAGE_PAGE (Generic Desktop)
   0x09, 0x06,                         // USAGE (Keyboard)
@@ -411,7 +461,7 @@ __ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SI
   0x95, 0x01,                         //   REPORT_COUNT (1)
   0x75, 0x03,                         //   REPORT_SIZE (3)
   0x91, 0x03,                         //   OUTPUT (Cnst,Var,Abs)
-  0x95, HW_KEYS_PRESS_MAX,            //   REPORT_COUNT (6)
+  0x95, HW_KEYS_BOOT_MAX,             //   REPORT_COUNT (6)
   0x75, 0x08,                         //   REPORT_SIZE (8)
   0x15, 0x00,                         //   LOGICAL_MINIMUM (0)
   0x26, 0xFF, 0x00,                   //   LOGICAL_MAXIMUM (255)
@@ -421,6 +471,10 @@ __ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SI
   0x81, 0x00,                         //   INPUT (Data,Ary,Abs)
   0xc0                                // END_COLLECTION
 };
+
+// 크기가 어긋나면 열거가 조용히 깨진다. 빌드에서 잡는다.
+_Static_assert(sizeof(HID_KEYBOARD_ReportDesc) == HID_KEYBOARD_REPORT_DESC_SIZE,
+               "HID_KEYBOARD_REPORT_DESC_SIZE 가 기술자 실제 크기와 다르다");
 
 __ALIGN_BEGIN static uint8_t HID_VIA_ReportDesc[HID_KEYBOARD_VIA_REPORT_DESC_SIZE] __ALIGN_END = 
 {
@@ -445,7 +499,16 @@ __ALIGN_BEGIN static uint8_t HID_VIA_ReportDesc[HID_KEYBOARD_VIA_REPORT_DESC_SIZ
   0xC0              // End Collection
 };
 
-__ALIGN_BEGIN static uint8_t HID_EXK_ReportDesc[HID_EXK_REPORT_DESC_SIZE] __ALIGN_END =
+/*
+ * IF2 - 비부트 인터페이스. 시스템/컨슈머/마우스에 확장 키보드를 더한다.
+ *
+ * 20키 롤오버는 여기로 나간다. IF0 은 규격대로 8바이트만 내야 하고, 둘을 동시에
+ * 내면 호스트가 키를 두 번 받으므로 한 번에 한쪽만 쓴다 (usbHidIsBootRoute).
+ *
+ * LED 출력은 일부러 넣지 않았다. IF0 에 이미 있고, 두 곳에 두면 SET_REPORT 가
+ * 리포트 ID 를 데이터에 포함하는지가 호스트마다 갈려 LED 처리가 흔들린다.
+ */
+__ALIGN_BEGIN static uint8_t HID_EXK_ReportDesc[] __ALIGN_END =
 {
   //
   0x05, 0x01,               // Usage Page (Generic Desktop)
@@ -502,8 +565,37 @@ __ALIGN_BEGIN static uint8_t HID_EXK_ReportDesc[HID_EXK_REPORT_DESC_SIZE] __ALIG
   0x95, 0x03,               //     Report Count (3)
   0x81, 0x06,               //     Input (Data,Var,Rel)
   0xC0,                     //   End Collection
-  0xC0                      // End Collection
+  0xC0,                     // End Collection
+
+  /* ======= 확장 키보드 (20키) ======= */
+  0x05, 0x01,                 // Usage Page (Generic Desktop)
+  0x09, 0x06,                 // Usage (Keyboard)
+  0xA1, 0x01,                 // Collection (Application)
+  0x85, REPORT_ID_KEYBOARD,   //   Report ID
+  0x05, 0x07,                 //   Usage Page (Keyboard)
+  0x19, 0xE0,                 //   Usage Minimum (Keyboard LeftControl)
+  0x29, 0xE7,                 //   Usage Maximum (Keyboard Right GUI)
+  0x15, 0x00,                 //   Logical Minimum (0)
+  0x25, 0x01,                 //   Logical Maximum (1)
+  0x75, 0x01,                 //   Report Size (1)
+  0x95, 0x08,                 //   Report Count (8)
+  0x81, 0x02,                 //   Input (Data,Var,Abs)   모디파이어
+  0x95, 0x01,                 //   Report Count (1)
+  0x75, 0x08,                 //   Report Size (8)
+  0x81, 0x03,                 //   Input (Cnst,Var,Abs)   예약
+  0x95, HW_KEYS_PRESS_MAX,    //   Report Count (20)
+  0x75, 0x08,                 //   Report Size (8)
+  0x15, 0x00,                 //   Logical Minimum (0)
+  0x26, 0xFF, 0x00,           //   Logical Maximum (255)
+  0x05, 0x07,                 //   Usage Page (Keyboard)
+  0x19, 0x00,                 //   Usage Minimum (Reserved)
+  0x29, 0xFF,                 //   Usage Maximum (Keyboard Application)
+  0x81, 0x00,                 //   Input (Data,Ary,Abs)
+  0xC0                        // End Collection
 };
+
+_Static_assert(sizeof(HID_EXK_ReportDesc) == HID_EXK_REPORT_DESC_SIZE,
+               "HID_EXK_REPORT_DESC_SIZE 가 기술자 실제 크기와 다르다");
 
 static USBD_HID_HandleTypeDef *p_hhid = NULL;
 static uint8_t HIDInEpAdd = HID_EPIN_ADDR;
@@ -567,6 +659,12 @@ static uint8_t USBD_HID_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
 
   hhid->state = USBD_HID_IDLE;
+
+  // 재열거 도중 전송이 끊기면 busy 가 참으로 굳고, 완료 인터럽트가 영영 안 오므로
+  // 그 EP 가 조용히 죽는다. 설정이 새로 잡히는 이 자리에서 되돌린다.
+  kbd_ep_busy        = false;
+  exk_ep_busy        = false;
+  extk_kbd_in_flight = false;
 
   /* Prepare Out endpoint to receive next packet */
   (void)USBD_LL_PrepareReceive(pdev, HID_VIA_EP_OUT, via_hid_usb_report, 32);
@@ -658,11 +756,19 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
         case USBD_HID_REQ_SET_PROTOCOL:
           logDebug("  USBD_HID_REQ_SET_PROTOCOL  : 0x%X, 0x%d\n", req->wValue, req->wLength);      
           hhid->Protocol = (uint8_t)(req->wValue);
+          // 모든 인터페이스가 이리로 온다. 부트 서브클래스를 가진 것은 IF0 뿐이라
+          // 그것만 본다. 여기서는 값만 기록한다 - 눌린 키를 비우는 것은 QMK 의 일이고
+          // 여기는 제어 전송 안이다 (qmkUpdate 가 경로 변화를 보고 한다).
+          if (req->wIndex == 0U)
+          {
+            kbd_protocol = (req->wValue == 0U) ? 0U : 1U;
+          }
           break;
 
         case USBD_HID_REQ_GET_PROTOCOL:
           logDebug("  USBD_HID_REQ_GET_PROTOCOL  : 0x%X, 0x%d\n", req->wValue, req->wLength);      
-          (void)USBD_CtlSendData(pdev, (uint8_t *)&hhid->Protocol, 1U);
+          ep0_protocol_buf = (req->wIndex == 0U) ? kbd_protocol : 1U;
+          (void)USBD_CtlSendData(pdev, &ep0_protocol_buf, 1U);
           break;
 
         case USBD_HID_REQ_SET_IDLE:
@@ -679,6 +785,26 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
           logDebug("  USBD_HID_REQ_SET_REPORT  : 0x%X, 0x%d\n", req->wValue, req->wLength);     
           ep0_req = *req;
           USBD_CtlPrepareRx(pdev, ep0_req_buf, req->wLength);
+          break;
+
+        case USBD_HID_REQ_GET_REPORT:
+          // 초기화 때 GET_REPORT 를 던지는 호스트가 있다. 처리하지 않으면 STALL 이
+          // 나가고, 그걸 실패로 보는 드라이버는 키보드를 아예 안 붙인다.
+          logDebug("  USBD_HID_REQ_GET_REPORT  : 0x%X, 0x%d\n", req->wValue, req->wLength);
+          if (req->wIndex == 0U)
+          {
+            memset(ep0_rep_buf, 0, HID_KEYBOARD_BOOT_SIZE);
+            ep0_rep_buf[0] = kbd_state_last[0];
+            memcpy(&ep0_rep_buf[2], &kbd_state_last[2], HW_KEYS_BOOT_MAX);
+            len = MIN(HID_KEYBOARD_BOOT_SIZE, req->wLength);
+          }
+          else
+          {
+            ep0_rep_buf[0] = REPORT_ID_KEYBOARD;
+            memcpy(&ep0_rep_buf[1], kbd_state_last, HID_KEYBOARD_REPORT_SIZE);
+            len = MIN((uint16_t)sizeof(ep0_rep_buf), req->wLength);
+          }
+          (void)USBD_CtlSendData(pdev, ep0_rep_buf, len);
           break;
 
         default:
@@ -717,6 +843,9 @@ static uint8_t USBD_HID_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
               case 2:
                 len = MIN(HID_EXK_REPORT_DESC_SIZE, req->wLength);
                 pbuf = HID_EXK_ReportDesc;
+                // BIOS 는 비부트 인터페이스의 기술자를 읽지 않는다. 이 요청이 왔다는
+                // 것은 OS 급 호스트가 IF2 를 열거했다는 뜻이다 -> 확장 경로를 쓴다.
+                extk_desc_read = true;
                 break;
 
               default:
@@ -1031,6 +1160,15 @@ static uint8_t USBD_HID_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   if (epnum == (HID_EXK_EP_IN & 0x0F))
   {
     exk_ep_busy = false;
+
+    // 확장 경로에서는 키 리포트도 이 EP 로 나간다. 레이턴시 측정은 키 리포트만 따른다.
+    if (extk_kbd_in_flight)
+    {
+      extk_kbd_in_flight = false;
+      data_in_cnt++;
+      usbHidMeasureRateTime();
+    }
+
     usbHidFlush();
     return (uint8_t)USBD_OK;
   }
@@ -1345,6 +1483,12 @@ void usbHidResetLinkHealth(void)
 void usbHidLinkOnReset(void)
 {
   link_reset_count++;
+
+  // ★ 재열거에서 되돌린다. 그러지 않으면 BIOS 를 거쳐 부팅한 뒤 OS 에서도 부트
+  //   프로토콜로 남아 20키가 안 나간다.
+  kbd_protocol   = 1;
+  extk_desc_read = false;
+  route_is_boot  = true;
 }
 
 void usbHidLinkOnSuspend(void)
@@ -1481,12 +1625,109 @@ void TIM2_IRQHandler(void)
 volatile int timer_cnt = 0;
 volatile uint32_t timer_end = 0;
 
+uint8_t usbHidGetProtocol(void)
+{
+  return kbd_protocol;
+}
+
+bool usbHidIsBootRoute(void)
+{
+  return route_is_boot;
+}
+
+/*
+ * 시험용이다. 평소에는 호스트가 정한다.
+ *
+ * 부트 프로토콜을 요구하는 것은 BIOS·부트로더뿐이라 책상에서는 재현할 방법이 없다.
+ * 같은 자리에 값을 넣어 흉내 낸다 - 그러지 않으면 "BIOS 에서 키가 먹나" 를 영영
+ * 시험할 수 없다.
+ */
+void usbHidSetProtocolTest(uint8_t protocol)
+{
+  kbd_protocol = (protocol == 0) ? 0 : 1;
+}
+
+// 지금 신호로는 어느 경로를 써야 하는가. route_is_boot 는 전환이 끝난 뒤에 따라온다.
+static bool usbHidWantBootRoute(void)
+{
+  return (kbd_protocol == 0) || (extk_desc_read == false);
+}
+
+// 지금 경로의 EP 가 바쁜가. 두 경로는 서로 다른 EP 를 쓴다.
+static bool usbHidKbdEpBusy(void)
+{
+  return route_is_boot ? kbd_ep_busy : exk_ep_busy;
+}
+
+// state 가 NULL 이면 0 리포트(전부 뗌)를 낸다. 실었으면 true.
+static bool usbHidTransmitKbd(bool is_boot, const uint8_t *state)
+{
+  // 전송 중인 DMA 버퍼를 덮어쓰면 선에 실리는 내용이 섞인다. 손대기 전에 막는다.
+  if (is_boot ? kbd_ep_busy : exk_ep_busy)
+    return false;
+
+  if (state != NULL)
+  {
+    memcpy(kbd_state_last, state, HID_KEYBOARD_REPORT_SIZE);
+  }
+  else
+  {
+    memset(kbd_state_last, 0, HID_KEYBOARD_REPORT_SIZE);
+  }
+
+  if (is_boot)
+  {
+    // mods, reserved, keys[0..5] 만 남긴다. 부트 프로토콜은 8바이트가 규격이다.
+    hid_buf[0] = kbd_state_last[0];
+    hid_buf[1] = 0;
+    memcpy(&hid_buf[2], &kbd_state_last[2], HW_KEYS_BOOT_MAX);
+
+    return USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_BOOT_SIZE);
+  }
+
+  hid_buf_extk[0] = REPORT_ID_KEYBOARD;
+  memcpy(&hid_buf_extk[1], kbd_state_last, HID_KEYBOARD_REPORT_SIZE);
+
+  extk_kbd_in_flight = true;
+  if (USBD_HID_SendReportEXK((uint8_t *)hid_buf_extk, sizeof(hid_buf_extk)))
+  {
+    return true;
+  }
+
+  extk_kbd_in_flight = false;
+  return false;
+}
+
+/*
+ * 경로가 갈리면 옛 인터페이스에 눌린 키가 그대로 남는다 - 아무도 안 뗀다.
+ * 0 리포트를 한 번 내보내고 나서 경로를 넘긴다. 못 실으면 다음 호출에 다시 온다.
+ *
+ * QMK 내부 상태를 비우는 것은 여기가 아니라 qmkUpdate 가 한다. 이 함수는 ISR 에서도
+ * 불리므로 상위 층 함수를 부르면 층이 뒤집힌다.
+ */
+static void usbHidUpdateRoute(void)
+{
+  bool want_boot = usbHidWantBootRoute();
+
+  if (want_boot == route_is_boot)
+    return;
+
+  if (usbHidTransmitKbd(route_is_boot, NULL) == false)
+    return;
+
+  route_is_boot = want_boot;
+  qbufferFlush(&report_kbd_q);   // 옛 경로로 쌓인 것은 이미 낡았다
+}
+
 // 메인 루프 / DataIn / TIM2 ISR 에서 모두 호출된다. ep_busy 가드 안에서
 // 가장 오래된 것 하나만 꺼내므로 몇 번을 호출하든 멱등이고 순서도 보존된다.
 // TIM2(SOF 종속) 가 멈춰도 나머지 두 경로가 큐를 비운다.
 void usbHidFlush(void)
 {
-  if (qbufferAvailable(&report_kbd_q) == 0 && qbufferAvailable(&report_exk_q) == 0)
+  bool route_req = (usbHidWantBootRoute() != route_is_boot);
+
+  if (route_req == false &&
+      qbufferAvailable(&report_kbd_q) == 0 && qbufferAvailable(&report_exk_q) == 0)
   {
     return;   // 메인 루프에서 매 반복 호출되므로 임계구역 진입 전에 빠진다
   }
@@ -1494,16 +1735,17 @@ void usbHidFlush(void)
   uint32_t primask = __get_PRIMASK();
   __disable_irq();
 
-  if (qbufferAvailable(&report_kbd_q) > 0 && !kbd_ep_busy)
+  usbHidUpdateRoute();
+
+  if (qbufferAvailable(&report_kbd_q) > 0 && !usbHidKbdEpBusy())
   {
     kbd_report_info_t report_info;
 
     qbufferRead(&report_kbd_q, (uint8_t *)&report_info, 1);
-    memcpy(hid_buf, report_info.buf, HID_KEYBOARD_REPORT_SIZE);
 
     // 전송이 거절되면(미CONFIGURED) DataIn 이 오지 않으므로 측정 플래그를 세우지
     // 않는다. 세워두면 다음 리포트의 DataIn 이 죽은 리포트의 시각으로 계산한다.
-    if (USBD_HID_SendReport((uint8_t *)hid_buf, HID_KEYBOARD_REPORT_SIZE))
+    if (usbHidTransmitKbd(route_is_boot, report_info.buf))
     {
       key_time_pre      = report_info.time_pre;
       key_time_req      = true;
@@ -1527,6 +1769,7 @@ void usbHidFlush(void)
 
     qbufferRead(&report_exk_q, (uint8_t *)&report_info, 1);
     memcpy(hid_buf_exk, report_info.buf, report_info.len);
+    extk_kbd_in_flight = false;   // 이 EP 에 실린 것은 키 리포트가 아니다
     USBD_HID_SendReportEXK((uint8_t *)hid_buf_exk, report_info.len);
   }
 
@@ -1550,6 +1793,21 @@ void cliCmd(cli_args_t *args)
 
   if (args->argc == 1 && args->isStr(0, "info") == true)
   {
+    ret = true;
+  }
+
+  if (args->argc == 1 && args->isStr(0, "proto") == true)
+  {
+    cliPrintf("protocol : %d (%s)\n", usbHidGetProtocol(), usbHidGetProtocol() ? "report" : "boot");
+    cliPrintf("route    : %s\n", usbHidIsBootRoute() ? "IF0 boot 8byte 6KRO" : "IF2 ext 20KRO");
+    ret = true;
+  }
+
+  // 부트 프로토콜은 BIOS 만 요구하므로 책상에서는 이렇게 흉내 내야 시험이 된다.
+  if (args->argc == 2 && args->isStr(0, "proto") == true)
+  {
+    usbHidSetProtocolTest((uint8_t)args->getData(1));
+    cliPrintf("protocol -> %d (%s)\n", usbHidGetProtocol(), usbHidGetProtocol() ? "report" : "boot");
     ret = true;
   }
 
@@ -1686,6 +1944,8 @@ void cliCmd(cli_args_t *args)
   if (ret == false)
   {
     cliPrintf("usbhid info\n");
+    cliPrintf("usbhid proto\n");
+    cliPrintf("usbhid proto 0:boot 1:report\n");
     cliPrintf("usbhid rate\n");
     cliPrintf("usbhid rate his\n");
     cliPrintf("usbhid log\n");
