@@ -72,6 +72,13 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length)
     return;
   }
 #endif
+#ifdef TAPPING_TERM_RUNTIME
+  if (*channel_id == id_qmk_tapping)
+  {
+    via_qmk_tapping_command(data, length);
+    return;
+  }
+#endif
 
   // Return the unhandled state
   *command_id = id_unhandled;

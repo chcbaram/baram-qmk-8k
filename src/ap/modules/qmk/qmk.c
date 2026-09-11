@@ -76,6 +76,9 @@ void keyboard_post_init_user(void)
 #ifdef HOLD_OKP_RUNTIME
   hold_okp_init();
 #endif
+#ifdef TAPPING_TERM_RUNTIME
+  tapping_cfg_init();
+#endif
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record)

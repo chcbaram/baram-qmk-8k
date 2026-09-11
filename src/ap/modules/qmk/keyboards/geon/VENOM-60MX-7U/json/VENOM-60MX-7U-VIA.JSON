@@ -140,6 +140,12 @@
               "label": "Hold On Other Key Press",
               "type": "toggle",
               "content": ["id_qmk_hold_okp_enable", 14, 1]
+            },
+            {
+              "label": "Tapping Term (default 200ms)",
+              "type": "range",
+              "options": [50, 500],
+              "content": ["id_qmk_tapping_term", 15, 1]
             }
           ]
         }

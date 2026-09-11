@@ -120,6 +120,7 @@ enum via_channel_id {
     id_qmk_kkuk               = 12,
     id_qmk_debounce           = 13,
     id_qmk_hold_okp           = 14,
+    id_qmk_tapping            = 15,
 };
 
 enum via_qmk_backlight_value {

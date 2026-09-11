@@ -43,6 +43,17 @@ if (HOLD_OKP_RUNTIME)
 endif()
 
 
+# TAPPING_TERM 을 VIA 에서 런타임 변경하려면 TAPPING_TERM_RUNTIME 를 켠다.
+# per-key 콜백 경로(TAPPING_TERM_PER_KEY / QUICK_TAP_TERM_PER_KEY)를 활성화하고
+# port/tapping_cfg.c 가 strong get_tapping_term()/get_quick_tap_term() 로 EEPROM 값을 반환한다.
+# Mod-Tap/Layer-Tap 과 Space Cadet(LS( / RS) 등)이 모두 이 값을 따른다.
+if (TAPPING_TERM_RUNTIME)
+  add_compile_definitions(TAPPING_TERM_RUNTIME)
+  add_compile_definitions(TAPPING_TERM_PER_KEY)
+  add_compile_definitions(QUICK_TAP_TERM_PER_KEY)
+endif()
+
+
 # 지정한 폴더에 있는 파일만 포함한다.
 #
 file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
@@ -79,6 +90,7 @@ file(GLOB QMK_SRC_FILES CONFIGURE_DEPENDS
   ${QMK_ROOT_PATH}/quantum/send_string/*.c
   ${QMK_ROOT_PATH}/quantum/process_keycode/process_key_override.c
   ${QMK_ROOT_PATH}/quantum/process_keycode/process_grave_esc.c
+  ${QMK_ROOT_PATH}/quantum/process_keycode/process_space_cadet.c
 
 
   # ${QMK_KEYBOARD_PATH}/*.c
@@ -114,6 +126,8 @@ add_compile_definitions(VIA_ENABLE)
 add_compile_definitions(RAW_ENABLE)
 add_compile_definitions(DYNAMIC_KEYMAP_ENABLE)
 add_compile_definitions(KEY_OVERRIDE_ENABLE)
+# VIA 특수 탭의 LS( / RS) / LC( / RC) / LA( / RA) / SftEnt 는 모든 보드에 노출되므로 전역으로 켠다.
+add_compile_definitions(SPACE_CADET_ENABLE)
 add_compile_definitions(HOLD_ON_OTHER_KEY_PRESS)
 add_compile_definitions(EXTRAKEY_ENABLE)
 add_compile_definitions(MOUSEKEY_ENABLE)
