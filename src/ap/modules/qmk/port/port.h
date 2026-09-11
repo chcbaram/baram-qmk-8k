@@ -9,6 +9,7 @@
 #include "kkuk.h"
 #include "debounce_cfg.h"
 #include "hold_okp.h"
+#include "tapping_cfg.h"
 #include "chattering.h"
 
 
@@ -23,3 +24,4 @@
 #define EECONFIG_USER_KKUK            ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 24)) // 4B
 #define EECONFIG_USER_DEBOUNCE        ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 28)) // 4B
 #define EECONFIG_USER_HOLD_OKP        ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 32)) // 4B
+#define EECONFIG_USER_TAPPING         ((void *)((uint32_t)EECONFIG_USER_DATABLOCK + 36)) // 4B

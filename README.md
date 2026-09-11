@@ -2,6 +2,10 @@
 - Custom keyboard firmware supporting 8Khz polling rate
 - Key input processing is based on QMK firmware
 
+## Web Dashboard
+- https://chcbaram.github.io/baram-qmk-8k/
+  - VENOM MX Keyboard Manager (WebHID): firmware download, key latency, inspection
+
 ## Specification
 - ST STM32U5A5RJT6
 - Polling rate 8Khz
